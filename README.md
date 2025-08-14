@@ -4,4 +4,4 @@ O OpenAI Integration Hub é um projeto que visa criar uma biblioteca modular e r
 
 Com interfaces CLI e Web, ele oferece flexibilidade para desenvolvedores e uma experiência amigável para usuários. Este projeto é um exemplo prático de como construir integrações robustas e manuteníveis, focando em princípios de clean code, tratamento de erros e otimização.
 
-Explore o código, use as interfaces e descubra como simplificamos a jornada com a inteligência artificial!
+
