@@ -1,0 +1,6 @@
+2025-08-20 11:00:30,567 - INFO - aplicacao_principal - Ambiente e logger configurados com sucesso.
+2025-08-20 11:00:30,567 - INFO - aplicacao_principal - Aplicação iniciada com sucesso
+2025-08-20 11:00:30,567 - WARNING - aplicacao_principal - Configuração padrão sendo usada
+2025-08-20 11:00:30,568 - ERROR - aplicacao_principal - Simulando um erro
+2025-08-20 11:00:30,568 - CRITICAL - aplicacao_principal - Erro crítico simulado
+2025-08-20 11:00:30,568 - INFO - aplicacao_principal - Testes de logging concluídos.

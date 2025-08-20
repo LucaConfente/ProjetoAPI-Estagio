@@ -7,12 +7,16 @@ import requests
 import json
 import time # Adicionado para o backoff
 
-from .config import Configuracao # Ajuste para o nome da classe de configuração
-from .exceptions import (
+from src.config import Configuracao # Ajuste para o nome da classe de configuração
+from src.exceptions import (
     ErroClienteOpenAI, ErroAutenticacaoOpenAI, ErroRequisicaoInvalidaOpenAI,
     ErroNaoEncontradoOpenAI, ErroLimiteTaxaOpenAI, ErroServidorOpenAI,
     ErroTempoLimiteClienteOpenAI, ErroConexaoOpenAI, ErroTentativaNovamenteOpenAI, ErroAPIOpenAI
 )
+
+
+
+
 
 class ClienteHttpOpenAI:
     def __init__(self):

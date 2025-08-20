@@ -1,10 +1,14 @@
 
 
 from functools import lru_cache
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, SettingsConfigDict  # pyright: ignore[reportMissingImports]
 from pydantic import ValidationError
 import os
 from dotenv import load_dotenv
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class Config(BaseSettings):
     """
@@ -48,10 +52,11 @@ if __name__ == "__main__":
 
         
 
-###################################################################################################################################
+####################################################################################################################################
 
+# sera importada
 class Configuracao:
-    _instance = None
+    _instance = None # inicia sem nada
 
     def __new__(cls):
         if cls._instance is None:
@@ -69,8 +74,7 @@ class Configuracao:
         self.MAX_TENTATIVAS_OPENAI = int(os.getenv("OPENAI_MAX_RETRIES", 3)) # Adicionado
         self.FATOR_BACKOFF_OPENAI = float(os.getenv("OPENAI_BACKOFF_FACTOR", 0.1)) # Adicionado
 
-        # --- Adicionar configuração de Log ---
-        # Mapeia strings para níveis de log do módulo logging
+        # Mapeia strings para niveis de log do módulo logging
         self.NIVEIS_LOG = {
             "DEBUG": logging.DEBUG,
             "INFO": logging.INFO,

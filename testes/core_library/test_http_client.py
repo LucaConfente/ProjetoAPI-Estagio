@@ -180,7 +180,7 @@ def test_erro_http_resposta_500_com_retries(cliente_http, requests_mock):
     requests_mock.post(f"{cliente_http.url_base}/{ponto_final_teste}", json=mensagem_erro_api, status_code=500)
 
 
-    with pytest.raises(ErroTentativaNovamenteOpenAI) as info_excecao: # Deveria levantar esta exceção após falha nos retries
+    with pytest.raises(ErroTentativaNovamenteOpenAI) as info_excecao: 
         cliente_http.enviar(ponto_final_teste, dados={})
     
     assert "Máximo de retries (1) excedido" in str(info_excecao.value)
