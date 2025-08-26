@@ -1,0 +1,695 @@
+# Projeto de Estágio: OpenAI Integration Hub
+
+> **Tipo:** Backend + CLI + Web Interface
+> **Stack:** Python ou Node.js
+
+## 📌 Sumário
+
+- [Visão Geral](#visão-geral)
+- [Objetivos do Projeto](#objetivos-do-projeto)
+- [Requisitos e Restrições](#requisitos-e-restrições)
+- [Arquitetura do Sistema](#arquitetura-do-sistema)
+- [Fases de Desenvolvimento](#fases-de-desenvolvimento)
+- [Entregáveis](#entregáveis)
+- [Critérios de Avaliação](#critérios-de-avaliação)
+- [Recursos e Referências](#recursos-e-referências)
+- [Acompanhamento e Suporte](#acompanhamento-e-suporte)
+
+---
+
+## 🎯 Visão Geral
+
+### Descrição do Projeto
+
+O **OpenAI Integration Hub** é uma biblioteca modular e reutilizável para integração com a API da OpenAI. O projeto visa criar uma solução robusta que possa ser utilizada em futuros projetos da empresa, eliminando a necessidade de reimplementar integrações com IA.
+
+### Contexto de Negócio
+
+- **Problema:** Múltiplos projetos precisam integrar IA, mas cada um reimplementa a integração
+- **Solução:** Biblioteca centralizada e bem documentada
+- **Benefícios:** Redução de tempo de desenvolvimento, padronização, manutenção facilitada
+
+### Perfil do Estagiário
+
+- **Conhecimentos Básicos:** Lógica de programação, Python ou JavaScript
+- **Disposição:** Aprender sobre APIs, HTTP, e boas práticas
+- **Suporte:** Mentoria semanal e code reviews regulares
+
+---
+
+## 🎪 Objetivos do Projeto
+
+### Objetivos Técnicos
+
+1. **Criar uma biblioteca de integração com OpenAI**
+   - Implementação direta via HTTP/REST
+   - Arquitetura modular e extensível
+   - Fácil configuração e uso
+
+2. **Desenvolver interface CLI (v1)**
+   - Comandos intuitivos para todas as funcionalidades
+   - Saída formatada e amigável
+   - Modo interativo e não-interativo
+
+3. **Implementar interface Web (v2)**
+   - Interface simples e responsiva
+   - Integração com a biblioteca desenvolvida
+   - Exemplos práticos de uso
+
+### Objetivos de Aprendizado
+
+1. **Fundamentos de Desenvolvimento**
+   - Versionamento com Git
+   - Estruturação de projetos
+   - Documentação de código
+
+2. **Conceitos de API e HTTP**
+   - Métodos HTTP (GET, POST)
+   - Headers e autenticação
+   - Tratamento de respostas e erros
+
+3. **Boas Práticas de Programação**
+   - Código limpo e legível
+   - Princípios SOLID básicos
+   - Testes automatizados
+
+4. **Desenvolvimento Web Básico**
+   - Backend API (Flask/FastAPI ou Express)
+   - Frontend simples (HTMX ou React básico)
+   - Integração frontend-backend
+
+---
+
+## 📋 Requisitos e Restrições
+
+### Requisitos Funcionais
+
+#### RF01 - Autenticação
+
+- Gerenciamento seguro de API keys
+- Suporte a variáveis de ambiente
+- Validação de credenciais
+
+#### RF02 - Chat Completions
+
+- Suporte completo ao endpoint de chat
+- Gerenciamento de contexto de conversação
+- Streaming de respostas (opcional)
+
+#### RF03 - Text Completions
+
+- Implementação do endpoint de completions
+- Parâmetros configuráveis (temperature, max_tokens, etc.)
+- Validação de entrada
+
+#### RF04 - Tratamento de Erros
+
+- Captura e tratamento de erros da API
+- Mensagens de erro claras
+- Retry automático para erros temporários
+
+#### RF05 - Rate Limiting
+
+- Respeitar limites da API
+- Implementar fila de requisições
+- Feedback ao usuário sobre limites
+
+### Requisitos Não-Funcionais
+
+#### RNF01 - Performance
+
+- Tempo de resposta < 2s (excluindo latência da API)
+- Uso eficiente de memória
+- Cache opcional de respostas
+
+#### RNF02 - Manutenibilidade
+
+- Código modular e desacoplado
+- Documentação completa
+- Cobertura de testes > 80%
+
+#### RNF03 - Usabilidade
+
+- Instalação simples (pip/npm install)
+- Configuração mínima para começar
+- Exemplos práticos incluídos
+
+### Restrições Técnicas
+
+⚠️ **IMPORTANTE:**
+
+- ❌ **PROIBIDO** usar LangChain, LangGraph ou frameworks similares
+- ❌ **PROIBIDO** usar a biblioteca oficial da OpenAI
+- ✅ **OBRIGATÓRIO** implementar integração direta via HTTP
+
+### Stack Tecnológica Permitida
+
+#### Opção Python
+
+| Categoria | Biblioteca       | Propósito                     |
+| --------- | ---------------- | ----------------------------- |
+| HTTP      | requests         | Requisições REST              |
+| CLI       | click            | Interface de linha de comando |
+| Env       | python-dotenv    | Variáveis de ambiente         |
+| Validação | pydantic         | Validação de dados            |
+| Testes    | pytest           | Framework de testes           |
+| Web       | Flask ou FastAPI | Backend API                   |
+
+#### Opção Node.js
+
+| Categoria | Biblioteca | Propósito                     |
+| --------- | ---------- | ----------------------------- |
+| HTTP      | axios      | Requisições REST              |
+| CLI       | commander  | Interface de linha de comando |
+| Env       | dotenv     | Variáveis de ambiente         |
+| Validação | joi ou zod | Validação de dados            |
+| Testes    | jest       | Framework de testes           |
+| Web       | Express    | Backend API                   |
+
+---
+
+## 🏗️ Arquitetura do Sistema
+
+### Visão Geral da Arquitetura
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│                 │     │                 │     │                 │
+│   CLI (v1)      │────▶│  Core Library   │────▶│  OpenAI API     │
+│                 │     │                 │     │                 │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+                               ▲
+                               │
+                        ┌──────┴──────┐
+                        │             │
+                        │  Web (v2)   │
+                        │             │
+                        └─────────────┘
+```
+
+### Componentes Principais
+
+#### 1. Core Library
+
+- **Cliente HTTP Base**
+  - Gerenciamento de sessão
+  - Headers padrão
+  - Configuração base
+
+- **Sistema de Autenticação**
+  - Carregamento seguro de API key
+  - Validação de credenciais
+  - Renovação de tokens (se aplicável)
+
+- **Gerenciamento de Erros**
+  - Exceções customizadas
+  - Mapeamento de erros da API
+  - Estratégias de recuperação
+
+#### 2. Módulos Funcionais
+
+- **Chat Module**
+  - Criação de conversações
+  - Gerenciamento de mensagens
+  - Histórico de contexto
+
+- **Completions Module**
+  - Geração de texto
+  - Parâmetros avançados
+  - Templates pré-definidos
+
+- **Utils Module**
+  - Validadores de entrada
+  - Formatadores de saída
+  - Helpers gerais
+
+#### 3. Interface CLI
+
+- **Estrutura de Comandos**
+  - Comando principal
+  - Subcomandos por funcionalidade
+  - Opções e flags
+
+- **Funcionalidades**
+  - Modo interativo
+  - Modo batch
+  - Saída formatada
+
+#### 4. Interface Web
+
+- **Backend API**
+  - Endpoints RESTful
+  - Validação de requisições
+  - Gestão de sessões
+
+- **Frontend**
+  - Interface responsiva
+  - Formulários de entrada
+  - Exibição de resultados
+
+### Fluxo de Dados
+
+1. **Entrada do Usuário** → CLI ou Web Interface
+2. **Validação** → Módulo de validação
+3. **Processamento** → Core Library
+4. **Requisição HTTP** → OpenAI API
+5. **Resposta** → Tratamento e formatação
+6. **Saída** → Terminal ou Interface Web
+
+---
+
+## 📅 Fases de Desenvolvimento
+
+### 🚀 Fase 0: Preparação
+
+#### Objetivos
+
+- Configurar ambiente de desenvolvimento
+- Estudar documentação da OpenAI API
+- Definir estrutura inicial do projeto
+
+#### Tarefas
+
+- [X] Instalar ferramentas necessárias (Python/Node, Git, IDE)
+- [X] Criar repositório no GitHub
+- [X] Configurar .gitignore e README inicial
+- [X] Obter API key da OpenAI para testes
+- [X] Estudar conceitos de HTTP e REST APIs
+
+#### Marco de Entrega
+
+- **Ambiente configurado e primeira requisição de teste**
+
+### 🏗️ Fase 1: Fundação
+
+#### Objetivos
+
+- Implementar cliente HTTP básico
+- Sistema de configuração
+- Estrutura base do projeto
+
+#### Tarefas
+
+- [X] Criar estrutura de pastas do projeto
+- [X] Implementar carregamento de configurações
+- [X] Desenvolver cliente HTTP base
+- [X] Criar sistema de logging  # A rever
+- [X] Implementar autenticação
+
+#### Marco de Entrega
+
+- **Cliente HTTP funcional com autenticação**
+
+### 🔧 Fase 2: Core Components
+
+#### Objetivos
+
+- Sistema robusto de tratamento de erros
+- Implementar retry logic
+- Rate limiting básico
+
+#### Tarefas
+
+- [ ] Criar hierarquia de exceções customizadas
+- [ ] Implementar retry com backoff exponencial
+- [ ] Desenvolver rate limiter
+- [ ] Adicionar métricas de uso
+- [ ] Escrever testes unitários para o core
+
+#### Marco de Entrega
+
+- **Core components com testes unitários**
+
+### 💬 Fase 3: Módulos Funcionais
+
+#### Objetivos
+
+- Implementar módulos de chat e completions
+- Validação e formatação
+- Sistema completo de funcionalidades
+
+#### Tarefas
+
+- [ ] Criar módulo de chat completions
+- [ ] Implementar módulo de text completions
+- [ ] Desenvolver sistema de contexto
+- [ ] Adicionar validadores
+- [ ] Criar formatadores
+- [ ] Testes de integração
+
+#### Marco de Entrega
+
+- **Módulos funcionais completos e testados**
+
+### 🖥️ Fase 4: CLI Development
+
+#### Objetivos
+
+- Interface CLI completa
+- Comandos intuitivos
+- Documentação de uso
+
+#### Tarefas
+
+- [ ] Estruturar aplicação CLI
+- [ ] Implementar comandos principais
+- [ ] Criar modo interativo
+- [ ] Desenvolver sistema de help
+- [ ] Adicionar formatação de saída
+
+#### Marco de Entrega
+
+- **CLI funcional com todos os comandos**
+
+### 🌐 Fase 5: Web Backend
+
+#### Objetivos
+
+- API REST para o frontend
+- Endpoints seguros
+- Documentação da API
+
+#### Tarefas
+
+- [ ] Configurar framework web
+- [ ] Criar endpoints principais
+- [ ] Implementar autenticação
+- [ ] Configurar CORS
+- [ ] Documentar API
+
+#### Marco de Entrega
+
+- **API REST completa e documentada**
+
+### 🎨 Fase 6: Web Frontend
+
+#### Objetivos
+
+- Interface web funcional
+- Integração completa
+- Projeto finalizado
+
+#### Tarefas
+
+- [ ] Criar estrutura do frontend
+- [ ] Desenvolver interfaces
+- [ ] Integrar com backend
+- [ ] Estilização responsiva
+- [ ] Preparar documentação final
+
+#### Marco de Entrega
+
+- **Aplicação web completa e documentação final**
+
+---
+
+## 📦 Entregáveis
+
+### 1. Código Fonte
+
+#### Estrutura Esperada
+
+- **Organização Modular**
+  - Separação clara de responsabilidades
+  - Componentes reutilizáveis
+  - Fácil extensibilidade
+
+- **Qualidade de Código**
+  - Seguir style guide (PEP8/ESLint)
+  - Nomes descritivos
+  - Comentários onde necessário
+
+- **Cobertura de Testes**
+  - Mínimo 80% de cobertura
+  - Testes unitários e de integração
+  - Testes de casos extremos
+
+### 2. Documentação
+
+#### README.md Principal
+
+- Descrição do projeto
+- Instruções de instalação
+- Quickstart guide
+- Exemplos básicos
+
+#### Documentação Técnica
+
+- Arquitetura do sistema
+- Descrição dos módulos
+- API Reference
+- Decisões de design
+
+#### Guias de Uso
+
+- Tutorial passo a passo
+- Casos de uso comuns
+- Troubleshooting
+- FAQ
+
+### 3. Demonstrações
+
+#### Demo CLI
+
+- Vídeo ou GIF mostrando uso
+- Exemplos de todos os comandos
+- Casos de erro tratados
+
+#### Demo Web
+
+- Screenshots da interface
+- Fluxo completo de uso
+- Responsividade mobile
+
+#### Apresentação Final
+
+- Slides sobre o projeto
+- Arquitetura e decisões
+- Demonstração ao vivo
+- Lições aprendidas
+
+---
+
+## 📊 Critérios de Avaliação
+
+### Matriz de Avaliação
+
+| Critério           | Peso | Subcritérios                                                          | Pontuação |
+| ------------------ | ---- | --------------------------------------------------------------------- | --------- |
+| **Funcionalidade** | 30%  | • Implementação correta • Cobertura de features • Tratamento de erros | 0-10      |
+| **Código**         | 25%  | • Organização • Legibilidade • Boas práticas                          | 0-10      |
+| **Arquitetura**    | 20%  | • Modularização • Reusabilidade • Extensibilidade                     | 0-10      |
+| **Documentação**   | 15%  | • Clareza • Completude • Exemplos                                     | 0-10      |
+| **Testes**         | 10%  | • Cobertura • Qualidade • Automação                                   | 0-10      |
+
+### Níveis de Proficiência
+
+#### Excepcional (9-10)
+
+- Supera expectativas
+- Implementa features extras
+- Código exemplar
+
+#### Proficiente (7-8)
+
+- Atende todos requisitos
+- Código bem estruturado
+- Boa documentação
+
+#### Adequado (5-6)
+
+- Funcionalidades básicas
+- Algumas melhorias necessárias
+- Documentação presente
+
+#### Insuficiente (0-4)
+
+- Requisitos não atendidos
+- Problemas significativos
+- Requer refatoração
+
+---
+
+## 📚 Recursos e Referências
+
+### Documentação Oficial
+
+#### OpenAI
+
+- [API Reference](https://platform.openai.com/docs/api-reference)
+- [Rate Limits](https://platform.openai.com/docs/guides/rate-limits)
+- [Error Codes](https://platform.openai.com/docs/guides/error-codes)
+- [Best Practices](https://platform.openai.com/docs/guides/best-practices)
+
+#### HTTP e APIs
+
+- [MDN - HTTP Overview](https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview)
+- [REST API Tutorial](https://restfulapi.net/)
+- [HTTP Status Codes](https://httpstatuses.com/)
+
+### Tutoriais e Cursos
+
+#### Python
+
+- [Real Python - API Integration](https://realpython.com/api-integration-in-python/)
+- [Python Requests Documentation](https://requests.readthedocs.io/)
+- [Click Documentation](https://click.palletsprojects.com/)
+- [FastAPI Tutorial](https://fastapi.tiangolo.com/tutorial/)
+
+#### Node.js
+
+- [Node.js HTTP Module](https://nodejs.org/api/http.html)
+- [Axios Documentation](https://axios-http.com/docs/intro)
+- [Commander.js Guide](https://github.com/tj/commander.js)
+- [Express.js Guide](https://expressjs.com/en/guide/routing.html)
+
+### Ferramentas Úteis
+
+#### Desenvolvimento
+
+- [Postman](https://www.postman.com/) - Testar APIs
+- [httpie](https://httpie.io/) - CLI para HTTP
+- [JSON Formatter](https://jsonformatter.curiousconcept.com/) - Formatar JSON
+
+#### Debugging
+
+- [Chrome DevTools](https://developer.chrome.com/docs/devtools/)
+- [Python Debugger (pdb)](https://docs.python.org/3/library/pdb.html)
+- [Node.js Debugging Guide](https://nodejs.org/en/docs/guides/debugging-getting-started/)
+
+### Boas Práticas
+
+#### Clean Code
+
+- [Clean Code Summary](https://gist.github.com/wojteklu/73c6914cc446146b8b533c0988cf8d29)
+- [SOLID Principles](https://www.digitalocean.com/community/conceptual_articles/s-o-l-i-d-the-first-five-principles-of-object-oriented-design)
+- [DRY, KISS, YAGNI](https://www.itexico.com/blog/software-development-kiss-yagni-dry-3-principles-to-simplify-your-life)
+
+#### Git
+
+- [Git Best Practices](https://sethrobertson.github.io/GitBestPractices/)
+- [Conventional Commits](https://www.conventionalcommits.org/)
+- [Git Flow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow)
+
+---
+
+## 👥 Acompanhamento e Suporte
+
+### Estrutura de Mentoria
+
+#### Reuniões Regulares
+
+- **Check-in de Progresso**
+  - Avanços realizados
+  - Bloqueios encontrados
+  - Próximos passos
+
+- **Code Review**
+  - Revisão do código produzido
+  - Sugestões de melhoria
+  - Boas práticas
+
+- **Suporte Técnico**
+  - Esclarecimento de conceitos
+  - Orientação técnica
+  - Recursos adicionais
+
+#### Comunicação
+
+- Canal dedicado para dúvidas
+- Respostas em tempo hábil
+- Compartilhamento de recursos
+
+### Marcos de Acompanhamento
+
+| Fase       | Marco de Entrega                           | Tipo de Review  |
+| ---------- | ------------------------------------------ | --------------- |
+| Preparação | Ambiente configurado e primeira requisição | Demo            |
+| Fundação   | Cliente HTTP funcional                     | Code Review     |
+| Core       | Components com testes                      | Review + Testes |
+| Módulos    | Funcionalidades completas                  | Demo + Review   |
+| CLI        | Interface linha de comando                 | Demo            |
+| Backend    | API REST documentada                       | Review          |
+| Frontend   | Projeto completo                           | Apresentação    |
+
+### Suporte Técnico
+
+#### Problemas Comuns
+
+- **Erros de API Key**
+  - Verificar variáveis de ambiente
+  - Confirmar formato correto
+  - Testar em ferramenta externa
+
+- **Rate Limiting**
+  - Implementar delays
+  - Usar tier gratuito conscientemente
+  - Cache de respostas para testes
+
+- **Problemas de CORS**
+  - Configurar headers corretos
+  - Usar proxy em desenvolvimento
+  - Verificar configuração do servidor
+
+#### Processo de Resolução
+
+1. Tentar resolver autonomamente
+2. Consultar documentação
+3. Buscar em fóruns técnicos
+4. Solicitar ajuda no canal de suporte
+5. Agendar sessão com mentor se necessário
+
+### Recursos de Apoio
+
+#### Templates Disponíveis
+
+- Estrutura inicial de projeto
+- Configurações de linting
+- Setup de testes
+- Exemplos de implementação
+
+#### Ambiente de Desenvolvimento
+
+- Configurações recomendadas
+- Extensões úteis para IDE
+- Scripts de automação
+- Ferramentas de debugging
+
+---
+
+## 🎯 Considerações Finais
+
+### Expectativas do Projeto
+
+Este projeto foi estruturado para:
+
+- **Aprendizado progressivo e estruturado**
+- **Desenvolvimento de habilidades práticas**
+- **Criação de solução útil e reutilizável**
+- **Preparação para projetos futuros**
+
+### Oportunidades de Crescimento
+
+Ao concluir o projeto, o estagiário terá desenvolvido:
+
+- Compreensão sólida de APIs REST
+- Habilidades em programação modular
+- Experiência com desenvolvimento full-stack básico
+- Capacidade de documentar e testar código
+
+### Possíveis Extensões
+
+Após a conclusão, o projeto pode evoluir para:
+
+- Suporte a mais endpoints da OpenAI
+- Integração com outros providers de IA
+- Sistema avançado de cache
+- SDK para múltiplas linguagens
+- Interface de administração
+
+### Mensagem de Encorajamento
+
+Este projeto representa uma jornada de aprendizado significativa. O foco principal é o desenvolvimento de competências fundamentais que servirão como base sólida para a carreira. Cada desafio superado é uma oportunidade de crescimento.
+
+**Lembre-se:** A programação é uma habilidade que se desenvolve com prática e persistência. Erros são parte natural do processo de aprendizagem. O importante é manter a curiosidade, buscar soluções e celebrar cada progresso.
+

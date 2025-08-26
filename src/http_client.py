@@ -9,13 +9,10 @@ import time # Adicionado para o backoff
 
 from src.config import Configuracao # Ajuste para o nome da classe de configuração
 from src.exceptions import (
-    ErroClienteOpenAI, ErroAutenticacaoOpenAI, ErroRequisicaoInvalidaOpenAI,
-    ErroNaoEncontradoOpenAI, ErroLimiteTaxaOpenAI, ErroServidorOpenAI,
-    ErroTempoLimiteClienteOpenAI, ErroConexaoOpenAI, ErroTentativaNovamenteOpenAI, ErroAPIOpenAI
+    OpenAIClientError, OpenAIAuthenticationError, OpenAIBadRequestError, # ErroRequisicaoInvalidaOpenAI
+    OpenAINotFoundError, OpenAIRateLimitError, OpenAIServerError,
+    OpenAIClientTimeoutError, OpenAIConnectionError, OpenAIRetryError, OpenAIAPIError
 )
-
-
-
 
 
 class ClienteHttpOpenAI:
@@ -50,17 +47,17 @@ class ClienteHttpOpenAI:
             mensagem_erro += f" | Corpo da resposta não-JSON: {resposta.text[:200]}..."
         
         if codigo_status in (401, 403):
-            raise ErroAutenticacaoOpenAI(mensagem_erro)
+            raise OpenAIAuthenticationError(mensagem_erro) # ALTERADO
         elif codigo_status == 400:
-            raise ErroRequisicaoInvalidaOpenAI(mensagem_erro)
+            raise OpenAIBadRequestError(mensagem_erro) # ALTERADO
         elif codigo_status == 404:
-            raise ErroNaoEncontradoOpenAI(mensagem_erro)
+            raise OpenAINotFoundError(mensagem_erro) # ALTERADO
         elif codigo_status == 429:
-            raise ErroLimiteTaxaOpenAI(mensagem_erro)
+            raise OpenAIRateLimitError(mensagem_erro) # ALTERADO
         elif codigo_status >= 500:
-            raise ErroServidorOpenAI(mensagem_erro)
+            raise OpenAIServerError(mensagem_erro) # ALTERADO
         else:
-            raise ErroAPIOpenAI(mensagem_erro, codigo_status=codigo_status, detalhes_erro=detalhes_erro)
+            raise OpenAIAPIError(mensagem_erro, codigo_status=codigo_status, detalhes_erro=detalhes_erro) # ALTERADO
 
     def _realizar_requisicao(self, metodo: str, ponto_final: str, **kwargs) -> dict:
         """
@@ -84,11 +81,11 @@ class ClienteHttpOpenAI:
                     return {"mensagem": "Requisição bem-sucedida, mas resposta não é JSON", "resposta_bruta": resposta.text}
 
             except requests.exceptions.Timeout as e:
-                ultima_excecao = ErroTempoLimiteClienteOpenAI(f"Tempo limite excedido na requisição para {url_completa}: {e}")
+                ultima_excecao = OpenAIClientTimeoutError(f"Tempo limite excedido na requisição para {url_completa}: {e}") # ALTERADO
                 print(f"Tentativa {tentativa + 1}/{self.max_tentativas + 1}: Tempo limite. Re-tentando...")
 
             except requests.exceptions.ConnectionError as e:
-                ultima_excecao = ErroConexaoOpenAI(f"Erro de conexão para {url_completa}: {e}")
+                ultima_excecao = OpenAIConnectionError(f"Erro de conexão para {url_completa}: {e}") # ALTERADO
                 print(f"Tentativa {tentativa + 1}/{self.max_tentativas + 1}: Erro de conexão. Re-tentando...")
 
             except requests.exceptions.HTTPError as e:
@@ -102,7 +99,7 @@ class ClienteHttpOpenAI:
                     # Para outros 4xx (400, 401, 403, 404), não faz retry e levanta a exceção customizada imediatamente
                     self._tratar_erro_resposta(e.response) # Isso levantará a exceção apropriada
             except Exception as e: # Captura outras exceções inesperadas
-                ultima_excecao = ErroClienteOpenAI(f"Erro inesperado durante a requisição para {url_completa}: {e}")
+                ultima_excecao = OpenAIClientError(f"Erro inesperado durante a requisição para {url_completa}: {e}") # ALTERADO
                 print(f"Tentativa {tentativa + 1}/{self.max_tentativas + 1}: Erro inesperado. Re-tentando...")
             
             # Se ainda houver tentativas restantes
@@ -117,14 +114,14 @@ class ClienteHttpOpenAI:
                 # Se a última exceção foi um HTTPError, use o tratador de erros
                 self._tratar_erro_resposta(ultima_excecao.response)
             else:
-                # Para outras exceções (Tempo limite, Erro de conexão, etc.), ErroTentativaNovamenteOpenAI
-                raise ErroTentativaNovamenteOpenAI(
+                # Para outras exceções (Tempo limite, Erro de conexão, etc.), OpenAIClientError
+                raise OpenAIRetryError( # ALTERADO
                     f"Máximo de retries ({self.max_tentativas}) excedido para {url_completa}",
-                    excecao_original=ultima_excecao # Passa a exceção original para mais detalhes
+                    original_exception=ultima_excecao # Passa a exceção original para mais detalhes
                 )
         
         # Caso o loop termine sem sucesso e sem uma exceção específica para levantar (cenário improvável)
-        raise ErroClienteOpenAI(f"Requisição para {url_completa} falhou por motivo desconhecido após os retries.")
+        raise OpenAIClientError(f"Requisição para {url_completa} falhou por motivo desconhecido após os retries.") # ALTERADO
 
     def obter(self, ponto_final: str, parametros: dict = None) -> dict:
         """
