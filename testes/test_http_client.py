@@ -1,5 +1,5 @@
 # tests/core_library/test_cliente_http.py
-
+import requests
 import pytest
 import requests_mock
 import json
@@ -19,9 +19,8 @@ from src.config import Configuracao
 from src.exceptions import (
     OpenAIClientError, OpenAIAuthenticationError, OpenAIBadRequestError,
     OpenAINotFoundError, OpenAIRateLimitError, OpenAIServerError,
-    OpenAIClientTimeoutError, OpenAIConnectionError, OpenAIRetryError, OpenAIAPIError
+    OpenAITimeoutError, OpenAIConnectionError, OpenAIRetryError, OpenAIAPIError
 )
-
 
 # Fixture para garantir que temos uma configuração válida para o cliente durante os testes.
 # O escopo 'module' significa que esta fixture será executada apenas uma vez por módulo de teste.

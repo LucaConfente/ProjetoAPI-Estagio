@@ -65,6 +65,15 @@ class Configuracao:
             cls._instance = super(Configuracao, cls).__new__(cls)
             cls._instance._carregar_configuracoes()
         return cls._instance
+    
+
+    @classmethod
+    def obter_instancia(cls):
+        """
+        Retorna a única instância da classe Configuracao (padrão Singleton).
+        Usa o __new__ da própria classe para garantir o comportamento Singleton.
+        """
+        return cls() # Isso chamará o método __new__ da classe
 
     def _carregar_configuracoes(self):
         load_dotenv() # Carrega variáveis do .env

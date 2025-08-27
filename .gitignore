@@ -1,11 +1,11 @@
 # .gitignore
+
+
 __pycache__/
 *.pyc
 *.egg-info/
 .pytest_cache/
 .coverage
-
-__pycache__/
 venv/
 .env 
 

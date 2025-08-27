@@ -11,7 +11,7 @@ from src.config import Configuracao # Ajuste para o nome da classe de configura�
 from src.exceptions import (
     OpenAIClientError, OpenAIAuthenticationError, OpenAIBadRequestError, # ErroRequisicaoInvalidaOpenAI
     OpenAINotFoundError, OpenAIRateLimitError, OpenAIServerError,
-    OpenAIClientTimeoutError, OpenAIConnectionError, OpenAIRetryError, OpenAIAPIError
+    OpenAITimeoutError, OpenAIConnectionError, OpenAIRetryError, OpenAIAPIError
 )
 
 
@@ -81,7 +81,7 @@ class ClienteHttpOpenAI:
                     return {"mensagem": "Requisição bem-sucedida, mas resposta não é JSON", "resposta_bruta": resposta.text}
 
             except requests.exceptions.Timeout as e:
-                ultima_excecao = OpenAIClientTimeoutError(f"Tempo limite excedido na requisição para {url_completa}: {e}") # ALTERADO
+                ultima_excecao = OpenAITimeoutError(f"Tempo limite excedido na requisição para {url_completa}: {e}") # ALTERADO
                 print(f"Tentativa {tentativa + 1}/{self.max_tentativas + 1}: Tempo limite. Re-tentando...")
 
             except requests.exceptions.ConnectionError as e:
