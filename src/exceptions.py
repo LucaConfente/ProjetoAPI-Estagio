@@ -79,6 +79,23 @@ class OpenAIAPIError(OpenAIClientError):
 
 # --- Novas Implementações Sugeridas ---
 
+class OpenAIConfigurationError(Exception): # Ou a sua exceção base customizada
+    """
+    Exceção levantada para erros de configuração relacionados à API OpenAI.
+    """
+    def __init__(self, message: str, details: str = None):
+        """
+        Inicializa a exceção de configuração da OpenAI.
+
+        Args:
+            message (str): A mensagem de erro principal.
+            details (str, optional): Detalhes adicionais sobre o erro. Defaults to None.
+        """
+        super().__init__(message)
+        self.details = details # Armazena os detalhes para acesso posterior, se necessário
+
+
+
 class OpenAIConfigurationError(OpenAIClientError):
     """
     Exceção para erros relacionados à configuração do cliente OpenAI (ex: API Key ausente/inválida).

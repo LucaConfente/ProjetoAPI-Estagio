@@ -90,6 +90,7 @@ def test_criar_conversa_modelo_string_vazia():
 
 # --- Testes para o construtor (opcional, mas boa prática) ---
 
+
 def test_chat_module_inicializacao():
     """
     Testa se o ChatModule é inicializado corretamente e se ClienteHttpOpenAI é instanciado.
@@ -97,4 +98,5 @@ def test_chat_module_inicializacao():
     with patch('src.chat.ClienteHttpOpenAI') as MockClienteHttpOpenAI:
         chat_module = ChatModule()
         MockClienteHttpOpenAI.assert_called_once() # Verifica se ClienteHttpOpenAI foi instanciado
-        assert isinstance(chat_module.cliente_http, MockClienteHttpOpenAI) # Verifica se o atributo é a instância mockada
+
+        assert chat_module.cliente_http is MockClienteHttpOpenAI.return_value
