@@ -64,11 +64,11 @@ def test_criar_conversa_mensagens_formato_invalido():
     Testa se OpenAIValidationError é levantada quando mensagens não têm 'role'/'content'.
     """
     chat_module = ChatModule()
-    # Mensagem sem 'content'
+ 
     with pytest.raises(OpenAIValidationError, match="dicionário com 'role' e 'content'"):
         chat_module.criar_conversa([{"role": "user", "text": "Isso está errado"}], "gpt-3.5-turbo")
     
-    # Mensagem sem 'role'
+
     with pytest.raises(OpenAIValidationError, match="dicionário com 'role' e 'content'"):
         chat_module.criar_conversa([{"content": "Isso também está errado"}], "gpt-3.5-turbo")
 

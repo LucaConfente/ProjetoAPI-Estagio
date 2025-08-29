@@ -1,0 +1,35 @@
+2025-08-28 16:56:36,639 - command_processor.comando_sucesso - INFO - Tentando executar comando: 'comando_sucesso'
+2025-08-28 16:56:36,639 - command_processor.comando_sucesso - DEBUG - Comando 'comando_sucesso' executado com sucesso.
+2025-08-28 16:56:36,642 - command_processor.comando_falha - INFO - Tentando executar comando: 'comando_falha'
+2025-08-28 16:56:36,642 - command_processor.comando_falha - WARNING - Comando 'comando_falha' encontrou um aviso.
+2025-08-28 16:56:36,642 - command_processor.comando_falha - ERROR - Comando 'comando_falha' falhou na execução.
+2025-08-28 16:56:49,762 - command_processor.comando_sucesso - INFO - Tentando executar comando: 'comando_sucesso'
+2025-08-28 16:56:49,762 - command_processor.comando_sucesso - DEBUG - Comando 'comando_sucesso' executado com sucesso.
+2025-08-28 16:56:49,765 - command_processor.comando_falha - INFO - Tentando executar comando: 'comando_falha'
+2025-08-28 16:56:49,765 - command_processor.comando_falha - WARNING - Comando 'comando_falha' encontrou um aviso.
+2025-08-28 16:56:49,765 - command_processor.comando_falha - ERROR - Comando 'comando_falha' falhou na execução.
+2025-08-28 16:58:12,649 - command_processor.comando_sucesso - INFO - Tentando executar comando: 'comando_sucesso'
+2025-08-28 16:58:12,649 - command_processor.comando_sucesso - DEBUG - Comando 'comando_sucesso' executado com sucesso.
+2025-08-28 16:58:12,652 - command_processor.comando_falha - INFO - Tentando executar comando: 'comando_falha'
+2025-08-28 16:58:12,652 - command_processor.comando_falha - WARNING - Comando 'comando_falha' encontrou um aviso.
+2025-08-28 16:58:12,652 - command_processor.comando_falha - ERROR - Comando 'comando_falha' falhou na execução.
+2025-08-28 16:58:52,882 - command_processor.comando_sucesso - INFO - Tentando executar comando: 'comando_sucesso'
+2025-08-28 16:58:52,882 - command_processor.comando_sucesso - DEBUG - Comando 'comando_sucesso' executado com sucesso.
+2025-08-28 16:58:52,884 - command_processor.comando_falha - INFO - Tentando executar comando: 'comando_falha'
+2025-08-28 16:58:52,884 - command_processor.comando_falha - WARNING - Comando 'comando_falha' encontrou um aviso.
+2025-08-28 16:58:52,884 - command_processor.comando_falha - ERROR - Comando 'comando_falha' falhou na execução.
+2025-08-28 16:59:00,828 - command_processor.comando_sucesso - INFO - Tentando executar comando: 'comando_sucesso'
+2025-08-28 16:59:00,828 - command_processor.comando_sucesso - DEBUG - Comando 'comando_sucesso' executado com sucesso.
+2025-08-28 16:59:00,831 - command_processor.comando_falha - INFO - Tentando executar comando: 'comando_falha'
+2025-08-28 16:59:00,831 - command_processor.comando_falha - WARNING - Comando 'comando_falha' encontrou um aviso.
+2025-08-28 16:59:00,831 - command_processor.comando_falha - ERROR - Comando 'comando_falha' falhou na execução.
+2025-08-28 16:59:11,495 - command_processor.comando_sucesso - INFO - Tentando executar comando: 'comando_sucesso'
+2025-08-28 16:59:11,496 - command_processor.comando_sucesso - DEBUG - Comando 'comando_sucesso' executado com sucesso.
+2025-08-28 16:59:11,498 - command_processor.comando_falha - INFO - Tentando executar comando: 'comando_falha'
+2025-08-28 16:59:11,498 - command_processor.comando_falha - WARNING - Comando 'comando_falha' encontrou um aviso.
+2025-08-28 16:59:11,498 - command_processor.comando_falha - ERROR - Comando 'comando_falha' falhou na execução.
+2025-08-28 21:27:08,626 - command_processor.comando_sucesso - INFO - Tentando executar comando: 'comando_sucesso'
+2025-08-28 21:27:08,626 - command_processor.comando_sucesso - DEBUG - Comando 'comando_sucesso' executado com sucesso.
+2025-08-28 21:27:08,629 - command_processor.comando_falha - INFO - Tentando executar comando: 'comando_falha'
+2025-08-28 21:27:08,629 - command_processor.comando_falha - WARNING - Comando 'comando_falha' encontrou um aviso.
+2025-08-28 21:27:08,629 - command_processor.comando_falha - ERROR - Comando 'comando_falha' falhou na execução.

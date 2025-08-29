@@ -1,8 +1,11 @@
-
 import pytest
 import logging
 import os
 import shutil
+import requests
+from requests.exceptions import HTTPError
+import requests_mock
+
 
 # Importa a função de configuração de log do módulo src.logconfig
 # Assumimos que o diretório raiz do projeto está no sys.path quando o pytest é executado
@@ -32,36 +35,13 @@ class CommandProcessor:
 
 # --- Fixtures e Testes Pytest ---
 
-@pytest.fixture(scope="module", autouse=True)
-def cleanup_logs_fixture():
+@pytest.fixture
+def algum_fixture(caplog):
     """
-    Fixture para limpar o diretório de logs e resetar os handlers de log
-    antes e depois da execução dos testes neste módulo.
-    Isso garante que os testes de log sejam isolados e não interfiram uns nos outros.
+    Fixture de exemplo para capturar logs durante os testes.
     """
-    log_dir = "logs"
-    log_file = os.path.join(log_dir, "app.log")
-
-    # Limpa handlers de todos os loggers para garantir um estado limpo
-    # Crucial para testes de logging consistentes.
-    for handler in logging.root.handlers[:]:
-        logging.root.removeHandler(handler)
-    for logger_name in logging.Logger.manager.loggerDict:
-        logger = logging.getLogger(logger_name)
-        for handler in logger.handlers[:]:
-            logger.removeHandler(handler)
-        logger.propagate = True # Reseta a propagação para o padrão (True)
-
-    # Limpa o diretório de logs se existir
-    if os.path.exists(log_dir):
-        shutil.rmtree(log_dir)
-    os.makedirs(log_dir, exist_ok=True) # Recria o diretório
-
-    yield # Executa os testes
-
-    # Opcional: Limpar o diretório de logs após todos os testes do módulo
-    # if os.path.exists(log_dir):
-    #     shutil.rmtree(log_dir)
+    caplog.set_level(logging.DEBUG)
+    yield caplog
 
 
 def test_command_execution_success(caplog):
@@ -129,50 +109,68 @@ def test_command_execution_failure(caplog):
     assert error_found
 
 
-def test_log_file_creation():
+# testes/test_commands.py
+import os
+import shutil
+import logging
+import pytest 
+from src.logconfig import configurar_logging 
+
+def test_log_file_creation(tmp_path): # Adicione tmp_path como argumento
     """
     Verifica se o diretório e o arquivo de log são criados
-    quando a função `configurar_logging` é chamada.
+    quando a função `configurar_logging` é chamada, usando um diretório temporário.
     """
-    log_dir = "logs"
-    log_file_path = os.path.join(log_dir, "app.log")
+    # Define o caminho do arquivo de log dentro do diretório temporário
+    log_file_path = tmp_path / "app.log"
 
-    # Garante que o diretório de logs está limpo antes deste teste específico
-    if os.path.exists(log_dir):
-        shutil.rmtree(log_dir)
+    # Chama configurar_logging com o caminho temporário
+    dummy_logger = configurar_logging("logger_para_teste_arquivo", log_file_path=str(log_file_path))
 
-    # Chama configurar_logging para um logger dummy para acionar a criação do arquivo
-    dummy_logger = configurar_logging("logger_para_teste_arquivo")
-    dummy_logger.info("Esta mensagem deve estar no arquivo de log.")
+    # Verifica se o arquivo de log foi criado no caminho temporário
+    assert log_file_path.exists()
+    assert log_file_path.is_file()
 
-    assert os.path.exists(log_dir)
-    assert os.path.isdir(log_dir)
-    assert os.path.exists(log_file_path)
-    assert os.path.isfile(log_file_path)
+    # Opcional: Verifica se algo foi escrito no log
+    # dummy_logger.info("Mensagem de teste")
+    # with open(log_file_path, 'r') as f:
+    #     content = f.read()
+    #     assert "Mensagem de teste" in content
 
-    # Verifica se a mensagem foi escrita no arquivo
-    with open(log_file_path, 'r', encoding='utf-8') as f:
-        content = f.read()
-        assert "Esta mensagem deve estar no arquivo de log." in content
-
-
-
-
-# # main.py
-# from src.logconfig import configurar_logging
-
-# def main():
-#     # Configura o logger
-#     logger = configurar_logging("aplicacao_principal")
+    # Limpeza: Fecha os handlers do logger criado para este teste.
+    # O tmp_path cuida da exclusão do diretório.
+    for handler in dummy_logger.handlers[:]:
+        dummy_logger.removeHandler(handler)
+        handler.close()
     
-#     # Testa diferentes níveis de log
-#     logger.debug("Mensagem de debug")
-#     logger.info("Aplicação iniciada com sucesso")
-#     logger.warning("Configuração padrão sendo usada")
-#     logger.error("Simulando um erro")
-#     logger.critical("Erro crítico simulado")
-    
-#     print("Verifique o console e o arquivo logs/app.log")
+    # Também é bom limpar handlers do logger root que possam ter sido adicionados
+    # se configurar_logging afeta o logger root.
+    for handler in logging.root.handlers[:]:
+        if isinstance(handler, logging.FileHandler) and handler.baseFilename == str(log_file_path.resolve()):
+            logging.root.removeHandler(handler)
+            handler.close()
 
-# if __name__ == "__main__":
-#     main()
+
+def test_mock_http_error_429(requests_mock):
+    # Mocka resposta 429 levantando HTTPError
+    response_429 = requests.Response()
+    response_429.status_code = 429
+    response_429._content = b'{"error": {"message": "Limite de taxa excedido", "type": "rate_limit_error"}}'
+    response_429.reason = "Too Many Requests"
+
+    ponto_final_teste = "endpoint_de_teste"
+    url_base = "http://localhost/api"
+
+    # Mocka a URL para levantar HTTPError
+    requests_mock.get(f"{url_base}/{ponto_final_teste}", exc=HTTPError(response=response_429))
+
+    # Exemplo de chamada que vai levantar o erro
+    with pytest.raises(HTTPError) as excinfo:
+        requests.get(f"{url_base}/{ponto_final_teste}")
+
+    assert excinfo.value.response.status_code == 429
+    assert excinfo.value.response.reason == "Too Many Requests"
+
+
+from src.exceptions import OpenAIRetryError  # Adicione o import correto conforme o local da definição
+

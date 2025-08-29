@@ -1,13 +1,13 @@
-
 class OpenAIClientError(Exception):
     """
     Exceção base para todos os erros do cliente OpenAI.
     Todas as exceções customizadas devem herdar desta classe.
     """
-    def __init__(self, message="Ocorreu um erro no cliente OpenAI.", details=None):
+    def __init__(self, message="Ocorreu um erro no cliente OpenAI.", details=None, original_exception=None):
         super().__init__(message)
         self.message = message
         self.details = details
+        self.original_exception = original_exception
 
     def __str__(self):
         if self.details:
@@ -40,17 +40,19 @@ class OpenAINotFoundError(OpenAIClientError):
 
 class OpenAIRateLimitError(OpenAIClientError):
     """Exception for when API rate limits are reached (e.g., 429 Too Many Requests)."""
-    def __init__(self, message="Limite de requisições da API OpenAI excedido.", status_code=None, error_details=None):
+    def __init__(self, message="Limite de requisições da API OpenAI excedido.", status_code=None, error_details=None, original_exception=None):
         super().__init__(message, details=error_details)
         self.status_code = status_code
         self.error_details = error_details
+        self.original_exception = original_exception
 
 class OpenAIServerError(OpenAIClientError):
     """Exception for OpenAI internal server errors (e.g., 5xx Server Errors)."""
-    def __init__(self, message="Erro interno do servidor da API OpenAI.", status_code=None, error_details=None):
+    def __init__(self, message="Erro interno do servidor da API OpenAI.", status_code=None, error_details=None, original_exception=None):
         super().__init__(message, details=error_details)
         self.status_code = status_code
         self.error_details = error_details
+        self.original_exception = original_exception
 
 class OpenAITimeoutError(OpenAIClientError):
     """Exception for connection or read timeouts."""
@@ -72,8 +74,8 @@ class OpenAIRetryError(OpenAIClientError):
 
 class OpenAIAPIError(OpenAIClientError):
     """Generic exception for errors returned by OpenAI API not specifically mapped."""
-    def __init__(self, message, status_code=None, error_details=None):
-        super().__init__(message, details=error_details)
+    def __init__(self, message, status_code=None, error_details=None, original_exception=None):
+        super().__init__(message, details=error_details, original_exception=original_exception)
         self.status_code = status_code
         self.error_details = error_details
 

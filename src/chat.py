@@ -1,6 +1,6 @@
-
 from .exceptions import OpenAIValidationError  
 from .http_client import ClienteHttpOpenAI     
+from .config import Config
 
 class ChatModule:   
     def __init__(self):
