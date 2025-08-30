@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import ValidationError, Field
 import logging
 import os
+from dotenv import load_dotenv
 
 # Importe sua exceção personalizada para erros de configuração
 from src.exceptions import OpenAIConfigurationError
@@ -12,7 +13,11 @@ from src.exceptions import OpenAIConfigurationError
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Carrega as variáveis de ambiente do arquivo .env, se existir
+load_dotenv()
+
 class Config(BaseSettings):
+    LOG_LEVEL_STR: str = "INFO"  # Usado para compatibilidade com logconfig. Pode ser ajustado conforme necessário.
     """
     Classe de configuração do projeto OpenAI Integration Hub.
     Carrega as configurações a partir de variáveis de ambiente e/ou arquivo .env

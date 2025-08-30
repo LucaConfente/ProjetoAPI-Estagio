@@ -1,6 +1,6 @@
-from .exceptions import OpenAIValidationError  
-from .http_client import ClienteHttpOpenAI     
-from .config import Config
+from src.exceptions import OpenAIValidationError  
+from src.http_client import ClienteHttpOpenAI     
+from src.config import Config
 
 class ChatModule:   
     def __init__(self):
@@ -16,3 +16,15 @@ class ChatModule:
 
         payload = {"model": modelo, "messages": mensagens}
         return self.cliente_http.enviar("chat/completions", dados=payload)
+
+if __name__ == "__main__":
+    print("Módulo Chat executado diretamente.")
+
+    chat = ChatModule()
+    try:
+        resposta = chat.criar_conversa([
+            {"role": "user", "content": "Olá, tudo bem?"}
+        ])
+        print("Resposta da API:", resposta)
+    except Exception as e:
+        print("Erro ao criar conversa:", e)

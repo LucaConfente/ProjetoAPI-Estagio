@@ -310,7 +310,7 @@ O **OpenAI Integration Hub** é uma biblioteca modular e reutilizável para inte
 
 #### Tarefas
 
-- [ ] Criar hierarquia de exceções customizadas
+- [X] Criar hierarquia de exceções customizadas
 - [ ] Implementar retry com backoff exponencial
 - [ ] Desenvolver rate limiter
 - [ ] Adicionar métricas de uso
