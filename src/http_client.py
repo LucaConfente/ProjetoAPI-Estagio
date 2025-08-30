@@ -23,13 +23,20 @@ from src.config import Config
 logger = logging.getLogger(__name__)
 
 class ClienteHttpOpenAI:
-    def __init__(self):
+    def __init__(self, max_tentativas: int = 2, fator_backoff: float = 0.01, tempo_limite: int = 10):
+        """
+        Inicializa o cliente HTTP para OpenAI.
+        Args:
+            max_tentativas (int): Número máximo de tentativas de retry para erros temporários (default: 2).
+            fator_backoff (float): Fator inicial para cálculo do backoff exponencial em segundos (default: 0.01).
+            tempo_limite (int): Timeout em segundos para cada requisição (default: 10).
+        """
         self.configuracao = Config.get_instance()
         self.chave_api = self.configuracao.OPENAI_API_KEY
         self.url_base = "https://api.openai.com/v1"
-        self.tempo_limite = 10
-        self.max_tentativas = 2
-        self.fator_backoff = 0.01
+        self.tempo_limite = tempo_limite
+        self.max_tentativas = max_tentativas
+        self.fator_backoff = fator_backoff
         self.sessao = requests.Session()
         self.sessao.headers.update({"Authorization": f"Bearer {self.chave_api}"})
 

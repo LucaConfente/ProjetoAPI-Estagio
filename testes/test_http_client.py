@@ -413,3 +413,40 @@ def test_post_com_dados_vazios(cliente_http, requests_mock):
     assert resposta == resposta_mock
     assert requests_mock.last_request.text in (None, "")  # Aceita ambos
     assert requests_mock.call_count == 2
+
+
+def test_retry_backoff_exponencial(cliente_http, requests_mock):
+    """
+    Testa se o retry com backoff exponencial é executado corretamente para erros temporários (HTTP 500).
+    O tempo de espera entre tentativas deve dobrar a cada retry.
+    """
+    import time
+    ponto_final_teste = "test_retry"
+    # Simula duas falhas 500 e uma resposta 200 na terceira tentativa
+    responses = [
+        {'status_code': 500, 'json': {'error': {'message': 'Erro temporário'}}},
+        {'status_code': 500, 'json': {'error': {'message': 'Erro temporário'}}},
+        {'status_code': 200, 'json': {'result': 'ok'}}
+    ]
+    chamada = {'count': 0}
+    def responder(request, context):
+        idx = chamada['count']
+        chamada['count'] += 1
+        context.status_code = responses[idx]['status_code']
+        return responses[idx]['json']
+    requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", json=responder)
+
+    # Patch time.sleep para capturar os tempos de espera
+    sleep_calls = []
+    original_sleep = time.sleep
+    def fake_sleep(seconds):
+        sleep_calls.append(seconds)
+    time.sleep = fake_sleep
+
+    try:
+        resposta = cliente_http.obter(ponto_final_teste)
+        assert resposta == {'result': 'ok'}
+        # Espera: [fator_backoff * 2^0, fator_backoff * 2^1] = [0.01, 0.02] (valores padrão)
+        assert sleep_calls == [cliente_http.fator_backoff * (2 ** i) for i in range(2)]
+    finally:
+        time.sleep = original_sleep
