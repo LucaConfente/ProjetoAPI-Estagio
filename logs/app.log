@@ -33,3 +33,8 @@
 2025-08-29 10:15:51,182 - command_processor.comando_falha - INFO - Tentando executar comando: 'comando_falha'
 2025-08-29 10:15:51,182 - command_processor.comando_falha - WARNING - Comando 'comando_falha' encontrou um aviso.
 2025-08-29 10:15:51,182 - command_processor.comando_falha - ERROR - Comando 'comando_falha' falhou na execução.
+2025-09-01 19:06:02,979 - command_processor.comando_sucesso - INFO - Tentando executar comando: 'comando_sucesso'
+2025-09-01 19:06:03,018 - command_processor.comando_sucesso - DEBUG - Comando 'comando_sucesso' executado com sucesso.
+2025-09-01 19:06:03,021 - command_processor.comando_falha - INFO - Tentando executar comando: 'comando_falha'
+2025-09-01 19:06:03,021 - command_processor.comando_falha - WARNING - Comando 'comando_falha' encontrou um aviso.
+2025-09-01 19:06:03,021 - command_processor.comando_falha - ERROR - Comando 'comando_falha' falhou na execução.

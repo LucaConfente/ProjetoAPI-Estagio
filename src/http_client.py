@@ -23,13 +23,14 @@ from src.config import Config
 logger = logging.getLogger(__name__)
 
 class ClienteHttpOpenAI:
-    def __init__(self, max_tentativas: int = 2, fator_backoff: float = 0.01, tempo_limite: int = 10):
+    def __init__(self, max_tentativas: int = 2, fator_backoff: float = 0.01, tempo_limite: int = 10, max_requisicoes_por_segundo: float = 3.0):
         """
         Inicializa o cliente HTTP para OpenAI.
         Args:
             max_tentativas (int): Número máximo de tentativas de retry para erros temporários (default: 2).
             fator_backoff (float): Fator inicial para cálculo do backoff exponencial em segundos (default: 0.01).
             tempo_limite (int): Timeout em segundos para cada requisição (default: 10).
+            max_requisicoes_por_segundo (float): Limite de requisições por segundo (rate limit local, default: 3.0).
         """
         self.configuracao = Config.get_instance()
         self.chave_api = self.configuracao.OPENAI_API_KEY
@@ -39,6 +40,11 @@ class ClienteHttpOpenAI:
         self.fator_backoff = fator_backoff
         self.sessao = requests.Session()
         self.sessao.headers.update({"Authorization": f"Bearer {self.chave_api}"})
+
+        # --- Rate Limiter (Token Bucket) ---
+        self.max_requisicoes_por_segundo = max_requisicoes_por_segundo
+        self._tokens = self.max_requisicoes_por_segundo
+        self._ultimo_token = time.time()
 
     def _tratar_erro_resposta(self, resposta: requests.Response):
         """
@@ -74,6 +80,25 @@ class ClienteHttpOpenAI:
             raise OpenAIAPIError(mensagem_erro, status_code=codigo_status, error_details=error_details)
 
 
+    def _rate_limiter(self):
+        """
+        Rate limiter simples (token bucket): permite até N requisições por segundo.
+        Se não houver tokens disponíveis, aguarda até liberar.
+        """
+        agora = time.time()
+        tokens_para_adicionar = (agora - self._ultimo_token) * self.max_requisicoes_por_segundo
+        if tokens_para_adicionar > 0:
+            self._tokens = min(self.max_requisicoes_por_segundo, self._tokens + tokens_para_adicionar)
+            self._ultimo_token = agora
+        if self._tokens >= 1:
+            self._tokens -= 1
+            return
+        tempo_espera = (1 - self._tokens) / self.max_requisicoes_por_segundo
+        logger.info(f"Rate limit atingido. Aguardando {tempo_espera:.2f}s para próxima requisição...")
+        time.sleep(tempo_espera)
+        self._tokens = 0
+        self._ultimo_token = time.time()
+
     def _realizar_requisicao(self, metodo: str, ponto_final: str, **kwargs) -> dict:
         """
         Realiza uma requisição HTTP para a API da OpenAI com lógica de retry e backoff.
@@ -84,6 +109,7 @@ class ClienteHttpOpenAI:
         last_caught_custom_exception = None # Armazena a última exceção customizada capturada no loop
 
         for tentativa in range(self.max_tentativas + 1):
+            self._rate_limiter()  # Aplica rate limit antes de cada requisição
             try:
                 resposta = self.sessao.request(metodo, url_completa, **kwargs)
                 resposta.raise_for_status() # Levanta HTTPError para 4xx/5xx

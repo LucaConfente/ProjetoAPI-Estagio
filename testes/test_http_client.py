@@ -450,3 +450,35 @@ def test_retry_backoff_exponencial(cliente_http, requests_mock):
         assert sleep_calls == [cliente_http.fator_backoff * (2 ** i) for i in range(2)]
     finally:
         time.sleep = original_sleep
+
+
+def test_rate_limiter_temporiza_requisicoes():
+    """
+    Testa se o rate limiter do ClienteHttpOpenAI limita o número de requisições por segundo.
+    Faz 5 requisições com limite de 2/s e mede o tempo total.
+    """
+    import time
+    from src.http_client import ClienteHttpOpenAI
+
+    cliente = ClienteHttpOpenAI(max_requisicoes_por_segundo=2.0)
+
+    # Mocka o método de requisição para não depender da API real
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+        def json(self):
+            return {"ok": True}
+
+    def fake_request(*args, **kwargs):
+        return FakeResponse()
+
+    cliente.sessao.request = fake_request
+
+    inicio = time.time()
+    for _ in range(5):
+        cliente._realizar_requisicao("GET", "models")
+    fim = time.time()
+    tempo_total = fim - inicio
+
+    # 2 requisições instantâneas, 3 limitadas (cada espera 0.5s): tempo mínimo esperado = 1.5s
+    assert tempo_total >= 1.5, f"Rate limiter não atrasou o suficiente: {tempo_total:.2f}s"
