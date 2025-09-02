@@ -2,7 +2,8 @@ import sys
 import os
 from pathlib import Path
 import click
-import openai # Importa a biblioteca openai (se ainda for usada globalmente)
+import openai 
+
 
 current_script_dir = Path(__file__).parent.absolute()
 project_root_dir = current_script_dir.parent
