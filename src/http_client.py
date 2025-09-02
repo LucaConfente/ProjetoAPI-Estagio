@@ -23,6 +23,28 @@ from src.config import Config
 logger = logging.getLogger(__name__)
 
 class ClienteHttpOpenAI:
+    def obter(self, ponto_final: str, params: dict = None) -> dict:
+        """
+        Realiza uma requisição GET para o endpoint especificado.
+        Args:
+            ponto_final (str): Endpoint da API (ex: 'models').
+            params (dict): Parâmetros de consulta opcionais.
+        Returns:
+            dict: Resposta da API em formato JSON.
+        """
+        return self._realizar_requisicao("GET", ponto_final, params=params)
+
+    def enviar(self, ponto_final: str, dados: dict = None) -> dict:
+        """
+        Realiza uma requisição POST para o endpoint especificado.
+        Args:
+            ponto_final (str): Endpoint da API (ex: 'chat/completions').
+            dados (dict): Dados para envio no corpo da requisição.
+        Returns:
+            dict: Resposta da API em formato JSON.
+        """
+        headers = {"Content-Type": "application/json"}
+        return self._realizar_requisicao("POST", ponto_final, json=dados, headers=headers)
     def __init__(self, max_tentativas: int = 2, fator_backoff: float = 0.01, tempo_limite: int = 10, max_requisicoes_por_segundo: float = 3.0):
         """
         Inicializa o cliente HTTP para OpenAI.
@@ -45,6 +67,21 @@ class ClienteHttpOpenAI:
         self.max_requisicoes_por_segundo = max_requisicoes_por_segundo
         self._tokens = self.max_requisicoes_por_segundo
         self._ultimo_token = time.time()
+
+        # --- Métricas de uso ---
+        self.metricas = {
+            'total_requisicoes': 0,
+            'requisicoes_sucesso': 0,
+            'requisicoes_falha': 0,
+            'tempo_total': 0.0,
+            'ultimos_status': [],
+        }
+        # --- Backoff intervals for testing ---
+        self._backoff_calls = []
+
+    def get_metricas(self):
+        """Retorna as métricas de uso do cliente HTTP."""
+        return self.metricas.copy()
 
     def _tratar_erro_resposta(self, resposta: requests.Response):
         """
@@ -100,116 +137,116 @@ class ClienteHttpOpenAI:
         self._ultimo_token = time.time()
 
     def _realizar_requisicao(self, metodo: str, ponto_final: str, **kwargs) -> dict:
+        self._backoff_calls.clear()  # Clear previous backoff intervals before each request
         """
         Realiza uma requisição HTTP para a API da OpenAI com lógica de retry e backoff.
         """
         url_completa = f"{self.url_base}/{ponto_final}"
         kwargs.setdefault('timeout', self.tempo_limite)
-        
-        last_caught_custom_exception = None # Armazena a última exceção customizada capturada no loop
-
+        last_caught_custom_exception = None
         for tentativa in range(self.max_tentativas + 1):
-            self._rate_limiter()  # Aplica rate limit antes de cada requisição
+            self._rate_limiter()
+            inicio = time.time()
+            status = None
+            last_caught_custom_exception = None
             try:
                 resposta = self.sessao.request(metodo, url_completa, **kwargs)
-                resposta.raise_for_status() # Levanta HTTPError para 4xx/5xx
-
+                resposta.raise_for_status()
                 try:
-                    return resposta.json()
+                    resultado = resposta.json()
                 except json.JSONDecodeError:
-                    logger.warning(f"Resposta da API não é JSON para {url_completa}. Conteúdo: {resposta.text[:100]}...")
-                    return {"mensagem": "Requisição bem-sucedida, mas resposta não é JSON", "resposta_bruta": resposta.text}
-
-            except Timeout as e:
-                last_caught_custom_exception = OpenAITimeoutError("Tempo limite excedido na conexão com a API OpenAI.", original_exception=e)
-                logger.warning(f"Tentativa {tentativa + 1}/{self.max_tentativas + 1}: Tempo limite. Re-tentando...")
-
-            except ConnectionError as e:
-                last_caught_custom_exception = OpenAIConnectionError(f"Erro de conexão para {url_completa}", original_exception=e)
-                logger.warning(f"Tentativa {tentativa + 1}/{self.max_tentativas + 1}: Erro de conexão. Re-tentando...")
-
+                    resultado = {"mensagem": "Requisição bem-sucedida, mas resposta não é JSON", "resposta_bruta": resposta.text}
+                self.metricas['total_requisicoes'] += 1
+                self.metricas['requisicoes_sucesso'] += 1
+                self.metricas['tempo_total'] += time.time() - inicio
+                self.metricas['ultimos_status'].append(getattr(resposta, 'status_code', 'erro'))
+                return resultado
             except HTTPError as e:
-                # Para 429 e 5xx, armazenamos a exceção customizada específica para potencial retry
-                if e.response.status_code == 429:
+                status = e.response.status_code if e.response else None
+                if status == 429:
                     from src.http_status_reasons import HTTP_STATUS_REASONS
-                    reason = e.response.reason or HTTP_STATUS_REASONS.get(e.response.status_code, "Unknown Error")
-                    error_details = e.response.json().get('error') if e.response.content else None
-                    mensagem_erro = f"Erro na API da OpenAI: {e.response.status_code} - {reason}"
+                    reason = e.response.reason if e.response else None
+                    error_details = e.response.json().get('error') if e.response and e.response.content else None
+                    mensagem_erro = f"Erro na API da OpenAI: {status} - {reason}"
                     if error_details and 'message' in error_details:
                         mensagem_erro += f" Detalhes da API: {error_details['message']}"
                     last_caught_custom_exception = OpenAIRateLimitError(
                         mensagem_erro,
-                        status_code=e.response.status_code,
+                        status_code=status,
                         error_details=error_details,
                         original_exception=e
                     )
                     logger.warning(f"Tentativa {tentativa + 1}/{self.max_tentativas + 1}: Erro HTTP 429. Re-tentando...")
-                elif e.response.status_code >= 500:
+                elif status and status >= 500:
                     from src.http_status_reasons import HTTP_STATUS_REASONS
-                    reason = e.response.reason or HTTP_STATUS_REASONS.get(e.response.status_code, "Unknown Error")
-                    error_details = e.response.json().get('error') if e.response.content else None
-                    mensagem_erro = f"Erro na API da API: {e.response.status_code} - {reason}"
+                    reason = e.response.reason if e.response else None
+                    error_details = e.response.json().get('error') if e.response and e.response.content else None
+                    mensagem_erro = f"Erro na API da API: {status} - {reason}"
                     if error_details and 'message' in error_details:
                         mensagem_erro += f" Detalhes da API: {error_details['message']}"
                     last_caught_custom_exception = OpenAIServerError(
                         mensagem_erro,
-                        status_code=e.response.status_code,
+                        status_code=status,
                         error_details=error_details,
                         original_exception=e
                     )
-                    logger.warning(f"Tentativa {tentativa + 1}/{self.max_tentativas + 1}: Erro HTTP {e.response.status_code}. Re-tentando...")
-                else:
-                    # Para outros erros 4xx (ex: 400, 401, 403, 404), não retente. Levante imediatamente.
-                    # Este método levantará uma exceção e sairá da função.
+                    logger.warning(f"Tentativa {tentativa + 1}/{self.max_tentativas + 1}: Erro HTTP {status}. Re-tentando...")
+                elif status in (400, 401, 403, 404):
+                    self.metricas['total_requisicoes'] += 1
+                    self.metricas['requisicoes_falha'] += 1
+                    self.metricas['tempo_total'] += time.time() - inicio
+                    self.metricas['ultimos_status'].append(status)
                     self._tratar_erro_resposta(e.response)
-
-            except RequestException as e: # Captura outras exceções relacionadas a requests (ex: TooManyRedirects)
+                    return  # Interrompe o loop imediatamente para erro 400, 401, 403, 404
+                else:
+                    if tentativa == self.max_tentativas:
+                        self.metricas['total_requisicoes'] += 1
+                        self.metricas['requisicoes_falha'] += 1
+                        self.metricas['tempo_total'] += time.time() - inicio
+                        self.metricas['ultimos_status'].append(status)
+                        self._tratar_erro_resposta(e.response)
+                        return
+            except Timeout as e:
+                status = None
+                last_caught_custom_exception = OpenAITimeoutError("Tempo limite excedido na conexão com a API OpenAI.", original_exception=e)
+                logger.warning(f"Tentativa {tentativa + 1}/{self.max_tentativas + 1}: Tempo limite. Re-tentando...")
+            except ConnectionError as e:
+                status = None
+                last_caught_custom_exception = OpenAIConnectionError(f"Erro de conexão para {url_completa}", original_exception=e)
+                logger.warning(f"Tentativa {tentativa + 1}/{self.max_tentativas + 1}: Erro de conexão. Re-tentando...")
+            except RequestException as e:
+                status = None
                 last_caught_custom_exception = OpenAIClientError(f"Erro de requisição inesperado para {url_completa}", original_exception=e)
                 logger.warning(f"Tentativa {tentativa + 1}/{self.max_tentativas + 1}: Erro de requisição inesperado. Re-tentando...")
-
-            except Exception as e: # Captura quaisquer outros erros inesperados
+            except Exception as e:
+                status = None
+                if tentativa == self.max_tentativas:
+                    self.metricas['total_requisicoes'] += 1
+                    self.metricas['requisicoes_falha'] += 1
+                    self.metricas['tempo_total'] += time.time() - inicio
+                    self.metricas['ultimos_status'].append(getattr(e, 'status_code', 'erro'))
                 last_caught_custom_exception = OpenAIClientError(f"Erro inesperado durante a requisição para {url_completa}", details=str(e), original_exception=e)
                 logger.error(f"Tentativa {tentativa + 1}/{self.max_tentativas + 1}: Erro inesperado. Re-tentando...", exc_info=True)
 
-            # Se uma exceção customizada foi capturada e ainda há retries disponíveis
+            # Backoff só para 429/500, Timeout, ConnectionError
             if last_caught_custom_exception and tentativa < self.max_tentativas:
-                tempo_espera = self.fator_backoff * (2 ** tentativa)
-                logger.info(f"Aguardando {tempo_espera:.2f} segundos antes da próxima tentativa...")
-                time.sleep(tempo_espera)
-                # Não limpe last_caught_custom_exception aqui, ela será sobrescrita na próxima iteração
-                # se um novo erro ocorrer.
-            elif last_caught_custom_exception:
-                # Não há mais retries, ou max_tentativas era 0 desde o início.
-                # Levante a exceção apropriada.
+                if status in (429,) or (status and status >= 500) or isinstance(last_caught_custom_exception, (OpenAITimeoutError, OpenAIConnectionError)):
+                    tempo_espera = self.fator_backoff * (2 ** tentativa)
+                    self._backoff_calls.append(tempo_espera)
+                    logger.info(f"Aguardando {tempo_espera:.2f} segundos antes da próxima tentativa...")
+                    time.sleep(tempo_espera)
+
+            # Se excedeu tentativas para erros retentáveis, levanta OpenAIRetryError
+            if tentativa == self.max_tentativas and last_caught_custom_exception:
+                # Se max_tentativas == 0, nunca levanta OpenAIRetryError, mas sim a exceção original
                 if self.max_tentativas == 0:
-                    # Se nenhuma retry foi configurada, levante o erro específico diretamente
                     raise last_caught_custom_exception
+                # Para 429/500/Timeout/ConnectionError, SEMPRE levanta OpenAIRetryError
+                if status in (429,) or (status and status >= 500) or isinstance(last_caught_custom_exception, (OpenAITimeoutError, OpenAIConnectionError)):
+                    raise OpenAIRetryError(
+                        f"Máximo de retries ({self.max_tentativas}) excedido para {url_completa}",
+                        original_exception=last_caught_custom_exception
+                    )
                 else:
-                    # Se retries foram configuradas e esgotadas, encapsule em OpenAIRetryError
-                    # Sempre levante OpenAIRetryError ao esgotar tentativas
-                    # Se for erro HTTP customizado, encapsule a exceção original do pacote requests
-                    if hasattr(last_caught_custom_exception, 'original_exception') and isinstance(last_caught_custom_exception.original_exception, requests.exceptions.HTTPError):
-                        raise OpenAIRetryError(
-                            f"Máximo de retries ({self.max_tentativas}) excedido para {url_completa}",
-                            original_exception=last_caught_custom_exception.original_exception
-                        )
-                    else:
-                        raise OpenAIRetryError(
-                            f"Máximo de retries ({self.max_tentativas}) excedido para {url_completa}",
-                            original_exception=last_caught_custom_exception
-                        )
-        
-        # Se o loop terminar sem retornar (o que não deveria acontecer se todos os caminhos forem cobertos)
+                    raise last_caught_custom_exception
         raise OpenAIClientError("Erro desconhecido: A requisição falhou sem exceção capturada e sem retorno de dados.")
-
-    def obter(self, ponto_final: str, parametros: dict = None) -> dict:
-        return self._realizar_requisicao("GET", ponto_final, params=parametros)
-
-    def enviar(self, ponto_final: str, dados: dict = None) -> dict:
-        return self._realizar_requisicao("POST", ponto_final, json=dados)
-
-    def atualizar(self, ponto_final: str, dados: dict = None) -> dict:
-        return self._realizar_requisicao("PUT", ponto_final, json=dados)
-
-    def deletar(self, ponto_final: str) -> dict:
-        return self._realizar_requisicao("DELETE", ponto_final)

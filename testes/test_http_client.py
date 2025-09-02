@@ -482,3 +482,44 @@ def test_rate_limiter_temporiza_requisicoes():
 
     # 2 requisições instantâneas, 3 limitadas (cada espera 0.5s): tempo mínimo esperado = 1.5s
     assert tempo_total >= 1.5, f"Rate limiter não atrasou o suficiente: {tempo_total:.2f}s"
+
+
+def test_metricas_de_uso_registram_sucesso_e_falha():
+    """
+    Testa se as métricas de uso do ClienteHttpOpenAI registram corretamente sucessos e falhas.
+    """
+    from src.http_client import ClienteHttpOpenAI
+    import time
+
+    cliente = ClienteHttpOpenAI()
+
+    # Mocka o método de requisição para simular sucesso e falha
+    class FakeResponse:
+        def __init__(self, status_code=200):
+            self.status_code = status_code
+        def raise_for_status(self):
+            if self.status_code != 200:
+                raise Exception('Erro', self)
+        def json(self):
+            return {"ok": True}
+
+    def fake_request_sucesso(*args, **kwargs):
+        return FakeResponse(200)
+    def fake_request_falha(*args, **kwargs):
+        return FakeResponse(500)
+
+    cliente.sessao.request = fake_request_sucesso
+    cliente._realizar_requisicao("GET", "models")
+    cliente.sessao.request = fake_request_falha
+    try:
+        cliente._realizar_requisicao("GET", "models")
+    except Exception:
+        pass
+
+    metricas = cliente.get_metricas()
+    assert metricas['total_requisicoes'] == 2
+    assert metricas['requisicoes_sucesso'] == 1
+    assert metricas['requisicoes_falha'] == 1
+    assert len(metricas['ultimos_status']) == 2
+    assert metricas['ultimos_status'][0] == 200
+    assert metricas['ultimos_status'][1] == 500 or metricas['ultimos_status'][1] == 'erro'
