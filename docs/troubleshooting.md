@@ -1,17 +1,37 @@
-# Troubleshooting (Resolução de Problemas)
+# Troubleshooting
 
-## Erros Comuns
-- **401 Unauthorized**: Verifique se a chave da API está correta.
-- **429 Too Many Requests**: Aguarde e tente novamente; o cliente implementa retry automático.
-- **500 Internal Server Error**: Pode ser problema temporário; o cliente tenta novamente com backoff exponencial.
-- **Timeout/ConnectionError**: Verifique sua conexão de rede e o tempo limite configurado.
+## Problemas Comuns
 
-## Debug de Testes
-- Use `pytest -v` para ver detalhes dos testes.
-- Se um teste falhar, verifique se o método está levantando a exceção correta (ex: `OpenAIRetryError` para retries).
-- Confira se o backoff está sendo registrado em `self._backoff_calls`.
+### 1. Erros de API Key
+- Verifique se a variável `OPENAI_API_KEY` está definida corretamente no arquivo `.env`.
+- Certifique-se de que não há espaços extras ou aspas na chave.
+- Gere uma nova chave na plataforma OpenAI se necessário.
 
-## Dicas Gerais
-- Sempre revise a configuração em `src/config.py`.
-- Consulte os logs em `logs/app.log` para detalhes de execução.
-- Para dúvidas sobre erros, consulte a documentação das exceções customizadas em `src/exceptions.py`.
+### 2. Falha de Autenticação (401/403)
+- Confirme se a chave está ativa e válida.
+- Verifique se o endpoint está correto.
+- Cheque se o ambiente está carregando as variáveis corretamente.
+
+### 3. Rate Limiting (429)
+- Reduza o número de requisições por segundo.
+- Utilize o rate limiter local do cliente.
+- Aguarde alguns segundos antes de tentar novamente.
+
+### 4. Timeout ou ConnectionError
+- Verifique sua conexão com a internet.
+- Aumente o valor de timeout na configuração.
+- Tente novamente em alguns minutos.
+
+### 5. Erros de Requisição (400/404/500)
+- Confira se os parâmetros enviados estão corretos.
+- Consulte a documentação dos endpoints.
+- Para erros 500, tente novamente após alguns instantes.
+
+## Ferramentas de Diagnóstico
+- Use logs detalhados (`LOG_LEVEL=DEBUG` no `.env`) para identificar o ponto de falha.
+- Utilize ferramentas como Postman ou httpie para testar endpoints manualmente.
+
+## Recomendações Gerais
+- Sempre mantenha a documentação e exemplos atualizados.
+- Consulte os arquivos `docs/api_reference.md` e `docs/architecture.md` para detalhes técnicos.
+- Em caso de dúvidas, revise os testes automatizados em `testes/` para exemplos de uso e tratamento de erros.

@@ -22,3 +22,26 @@ Implementa um cliente HTTP para a API OpenAI, com suporte a:
 
 ### Testes
 - Testes automatizados em `testes/test_http_client.py` cobrem todos os cenários de erro, sucesso, retry e métricas.
+
+# Referência da API
+
+## Visão Geral
+A biblioteca fornece integração direta via HTTP com a API da OpenAI, sem dependências de SDKs oficiais. Inclui tratamento avançado de erros, lógica de retry, rate limiter e métricas de uso.
+
+## Principais Classes
+### ClienteHttpOpenAI
+- Cliente central para requisições à OpenAI.
+- Suporte a GET, POST, retries, backoff exponencial, rate limiting e métricas.
+
+#### Métodos
+- `obter(ponto_final, params=None)`: Requisição GET para o endpoint.
+- `enviar(ponto_final, dados=None)`: Requisição POST para o endpoint.
+- `_realizar_requisicao(metodo, ponto_final, **kwargs)`: Lógica central de requisição, retry e tratamento de erros.
+- `get_metricas()`: Retorna métricas de uso (total, sucesso, falha, tempo, status).
+
+#### Exemplo de Uso
+```python
+from src.http_client import ClienteHttpOpenAI
+cliente = ClienteHttpOpenAI()
+resposta = cliente.obter('models')
+print(resposta)

@@ -138,9 +138,6 @@ class ClienteHttpOpenAI:
 
     def _realizar_requisicao(self, metodo: str, ponto_final: str, **kwargs) -> dict:
         self._backoff_calls.clear()  # Clear previous backoff intervals before each request
-        """
-        Realiza uma requisição HTTP para a API da OpenAI com lógica de retry e backoff.
-        """
         url_completa = f"{self.url_base}/{ponto_final}"
         kwargs.setdefault('timeout', self.tempo_limite)
         last_caught_custom_exception = None
@@ -207,19 +204,19 @@ class ClienteHttpOpenAI:
                         self._tratar_erro_resposta(e.response)
                         return
             except Timeout as e:
-                status = None
+                status = 'timeout'
                 last_caught_custom_exception = OpenAITimeoutError("Tempo limite excedido na conexão com a API OpenAI.", original_exception=e)
                 logger.warning(f"Tentativa {tentativa + 1}/{self.max_tentativas + 1}: Tempo limite. Re-tentando...")
             except ConnectionError as e:
-                status = None
+                status = 'connection'
                 last_caught_custom_exception = OpenAIConnectionError(f"Erro de conexão para {url_completa}", original_exception=e)
                 logger.warning(f"Tentativa {tentativa + 1}/{self.max_tentativas + 1}: Erro de conexão. Re-tentando...")
             except RequestException as e:
-                status = None
+                status = 'request'
                 last_caught_custom_exception = OpenAIClientError(f"Erro de requisição inesperado para {url_completa}", original_exception=e)
                 logger.warning(f"Tentativa {tentativa + 1}/{self.max_tentativas + 1}: Erro de requisição inesperado. Re-tentando...")
             except Exception as e:
-                status = None
+                status = 'exception'
                 if tentativa == self.max_tentativas:
                     self.metricas['total_requisicoes'] += 1
                     self.metricas['requisicoes_falha'] += 1
@@ -230,7 +227,7 @@ class ClienteHttpOpenAI:
 
             # Backoff só para 429/500, Timeout, ConnectionError
             if last_caught_custom_exception and tentativa < self.max_tentativas:
-                if status in (429,) or (status and status >= 500) or isinstance(last_caught_custom_exception, (OpenAITimeoutError, OpenAIConnectionError)):
+                if status == 429 or (isinstance(last_caught_custom_exception, (OpenAIServerError, OpenAITimeoutError, OpenAIConnectionError))):
                     tempo_espera = self.fator_backoff * (2 ** tentativa)
                     self._backoff_calls.append(tempo_espera)
                     logger.info(f"Aguardando {tempo_espera:.2f} segundos antes da próxima tentativa...")
@@ -238,11 +235,10 @@ class ClienteHttpOpenAI:
 
             # Se excedeu tentativas para erros retentáveis, levanta OpenAIRetryError
             if tentativa == self.max_tentativas and last_caught_custom_exception:
-                # Se max_tentativas == 0, nunca levanta OpenAIRetryError, mas sim a exceção original
                 if self.max_tentativas == 0:
                     raise last_caught_custom_exception
                 # Para 429/500/Timeout/ConnectionError, SEMPRE levanta OpenAIRetryError
-                if status in (429,) or (status and status >= 500) or isinstance(last_caught_custom_exception, (OpenAITimeoutError, OpenAIConnectionError)):
+                if status == 429 or (isinstance(last_caught_custom_exception, (OpenAIServerError, OpenAITimeoutError, OpenAIConnectionError))):
                     raise OpenAIRetryError(
                         f"Máximo de retries ({self.max_tentativas}) excedido para {url_completa}",
                         original_exception=last_caught_custom_exception
