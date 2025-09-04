@@ -1,11 +1,10 @@
-# src/http_client.py
+
 import requests
 import json
 import time
 import logging
 from requests.exceptions import Timeout, ConnectionError, HTTPError, RequestException
 
-# Assumindo que as exceções customizadas estão definidas em src.exceptions
 from src.exceptions import (
     OpenAIAPIError,
     OpenAIAuthenticationError,
@@ -76,7 +75,9 @@ class ClienteHttpOpenAI:
             'tempo_total': 0.0,
             'ultimos_status': [],
         }
-        # --- Backoff intervals for testing ---
+       
+        #BACKOFF 
+
         self._backoff_calls = []
 
     def get_metricas(self):
@@ -224,6 +225,7 @@ class ClienteHttpOpenAI:
                     self.metricas['ultimos_status'].append(getattr(e, 'status_code', 'erro'))
                 last_caught_custom_exception = OpenAIClientError(f"Erro inesperado durante a requisição para {url_completa}", details=str(e), original_exception=e)
                 logger.error(f"Tentativa {tentativa + 1}/{self.max_tentativas + 1}: Erro inesperado. Re-tentando...", exc_info=True)
+
 
             # Backoff só para 429/500, Timeout, ConnectionError
             if last_caught_custom_exception and tentativa < self.max_tentativas:

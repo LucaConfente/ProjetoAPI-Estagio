@@ -5,7 +5,7 @@ import requests_mock
 import json
 import sys
 import os
-import logging # Importa o módulo de logging para desativar durante os testes
+import logging 
 
 from requests.exceptions import Timeout, RequestException, HTTPError
 
@@ -14,12 +14,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 
 # Importa as classes do nosso projeto, já com os nomes em inglês, conforme o que o Python está lendo
 from src.http_client import ClienteHttpOpenAI
-from src.config import Config # ALTERADO: Usando a classe Config refatorada
+from src.config import Config 
 from src.exceptions import (
     OpenAIClientError, OpenAIAuthenticationError, OpenAIBadRequestError,
     OpenAINotFoundError, OpenAIRateLimitError, OpenAIServerError,
     OpenAITimeoutError, OpenAIConnectionError, OpenAIRetryError, OpenAIAPIError
 )
+
+
 
 logging.disable(logging.CRITICAL)
 print(logging.getLogger().handlers)
@@ -43,11 +45,11 @@ def configurar_cliente_para_teste():
         'OPENAI_BACKOFF_FACTOR': config_instancia.OPENAI_BACKOFF_FACTOR,
     }
 
-    config_instancia.OPENAI_API_KEY = "sk-test1234567890abcdefghijklmnopqrstuvwxyz" # Chave API válida (formato)
+    config_instancia.OPENAI_API_KEY = "sk-test1234567890abcdefghijklmnopqrstuvwxyz" 
     config_instancia.OPENAI_BASE_URL = "https://api.openai.com/v1"
     config_instancia.OPENAI_TIMEOUT = 10
     config_instancia.OPENAI_MAX_RETRIES = 2 # Define 0 tentativas para a maioria dos testes de erro único
-    config_instancia.OPENAI_BACKOFF_FACTOR = 0.01 # Fator pequeno para retries rápidos
+    config_instancia.OPENAI_BACKOFF_FACTOR = 0.01 # retries rápidos
 
     yield # Os testes que usam esta fixture serão executados aqui
     
@@ -58,12 +60,9 @@ def configurar_cliente_para_teste():
 
 
 # Fixture para criar uma instância do ClienteHttpOpenAI para cada teste.
-# Depende da fixture 'configurar_cliente_para_teste' para garantir que as configurações estejam prontas.
 @pytest.fixture
 def cliente_http(configurar_cliente_para_teste):
     return ClienteHttpOpenAI()
-
-
 
 
 def test_inicializacao_cliente_http(cliente_http):
@@ -78,7 +77,7 @@ def test_inicializacao_cliente_http(cliente_http):
 
 
 
-
+######### GET ##########
 def test_resposta_get_sucesso(cliente_http, requests_mock):
     """Testa uma requisição GET bem-sucedida."""
     ponto_final_teste = "models"
@@ -91,7 +90,7 @@ def test_resposta_get_sucesso(cliente_http, requests_mock):
 
 
 
-
+######### POST ##########
 def test_resposta_post_sucesso(cliente_http, requests_mock):
     """Testa uma requisição POST bem-sucedida."""
     ponto_final_teste = "chat/completions"
@@ -107,6 +106,8 @@ def test_resposta_post_sucesso(cliente_http, requests_mock):
     assert requests_mock.last_request.headers["Content-Type"] == "application/json"
 
 
+# ---------------------------------------------------------------------------------------------
+# TESTES DE ERROS HTTP
 
 def test_erro_http_resposta_400(cliente_http, requests_mock):
     """Testa o tratamento de erro HTTP (ex: 400 Requisição Inválida)"""
@@ -136,7 +137,6 @@ def test_erro_http_resposta_401(cliente_http, requests_mock):
 
 
 
-
 def test_erro_http_resposta_404(cliente_http, requests_mock):
     """Testa o tratamento de erro HTTP (ex: 404 Não Encontrado)."""
     ponto_final_teste = "non_existent_endpoint"
@@ -148,7 +148,6 @@ def test_erro_http_resposta_404(cliente_http, requests_mock):
     
     assert "404 - Not Found" in str(info_excecao.value)
     assert "Detalhes da API: Recurso não encontrado" in str(info_excecao.value)
-
 
 
 
@@ -173,7 +172,6 @@ def test_erro_http_resposta_429_com_retries(cliente_http, requests_mock):
     assert "Limite de taxa excedido" in str(info_excecao.value)
     assert info_excecao.value.status_code == 429
     assert requests_mock.call_count == 2
-
 
 
 
@@ -205,26 +203,26 @@ def test_erro_http_resposta_500_com_retries(cliente_http, requests_mock):
 
 def test_excecao_tempo_limite_com_retries(cliente_http, requests_mock):
     """Testa se uma exceção de Tempo Limite é levantada corretamente após retries."""
-    cliente_http.max_tentativas = 1 # Define 1 tentativa de retry
-    cliente_http.fator_backoff = 0.001 # Fator pequeno para teste rápido
+    cliente_http.max_tentativas = 1 
+    cliente_http.fator_backoff = 0.001
 
     ponto_final_teste = "slow_endpoint"
     requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", exc=req_exc.Timeout) # Primeira tentativa: timeout
-    requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", exc=req_exc.Timeout) # Segunda tentativa: timeout também
+    requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", exc=req_exc.Timeout) # Segunda tentativa: timeout 
 
     with pytest.raises(OpenAIRetryError) as info_excecao:
         cliente_http.obter(ponto_final_teste)
 
     assert "Máximo de retries (1) excedido" in str(info_excecao.value)
-    # CORREÇÃO AQUI: Apenas um nível de original_exception
+   
     assert isinstance(info_excecao.value.original_exception, OpenAITimeoutError)
-    # Opcional: Para verificar a exceção original do requests
+    
     assert isinstance(info_excecao.value.original_exception.original_exception, req_exc.Timeout)
 
 
 def test_excecao_conexao_com_retries(cliente_http, requests_mock):
     """Testa se uma exceção de conexão é levantada corretamente após retries."""
-    cliente_http.max_tentativas = 1 # Define 1 tentativa de retry
+    cliente_http.max_tentativas = 1
     cliente_http.fator_backoff = 0.001
 
     ponto_final_teste = "network_issue"
@@ -235,9 +233,9 @@ def test_excecao_conexao_com_retries(cliente_http, requests_mock):
         cliente_http.obter(ponto_final_teste)
 
     assert "Máximo de retries (1) excedido" in str(info_excecao.value)
-    # CORREÇÃO AQUI: Apenas um nível de original_exception
+   
     assert isinstance(info_excecao.value.original_exception, OpenAIConnectionError)
-    # Opcional: Para verificar a exceção original do requests
+   
     assert isinstance(info_excecao.value.original_exception.original_exception, req_exc.ConnectionError)
 def test_resposta_nao_json(cliente_http, requests_mock):
     """Testa a requisição quando a resposta não é um JSON válido."""
@@ -255,15 +253,16 @@ def test_resposta_nao_json(cliente_http, requests_mock):
 def test_retry_bem_sucedido(cliente_http, requests_mock):
     """Testa se o cliente tenta novamente após uma falha e tem sucesso na próxima tentativa."""
     cliente_http.max_tentativas = 2 # Permite até 2 retries
-    cliente_http.fator_backoff = 0.001 # Fator pequeno para teste rápido
+    cliente_http.fator_backoff = 0.001
 
     ponto_final_teste = "flaky_endpoint"
     resposta_sucesso = {"status": "ok", "message": "Sucesso após retry!"}
 
     # Define o comportamento do mock:
     # 1. Primeira chamada: Falha com 500
-    # 2. Segunda chamada (primeiro retry): Sucesso com 200
+    # 2. Segunda chamada (primeiro retry) Sucesso com 200
     # (requests_mock automaticamente avança para a próxima definição de mock na mesma URL)
+
     requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", [
         {'json': {"error": {"message": "Erro de servidor", "type": "server_error"}}, 'status_code': 500},
         {'json': resposta_sucesso, 'status_code': 200}
@@ -273,8 +272,6 @@ def test_retry_bem_sucedido(cliente_http, requests_mock):
     assert resposta == resposta_sucesso
     assert requests_mock.call_count == 2 # Deve ter feito 2 chamadas (a original que falhou + 1 retry que obteve sucesso)
 
-
-# --- NOVOS TESTES IMPLEMENTADOS ---
 
 def test_erro_http_resposta_500_sem_retries(cliente_http, requests_mock):
     """Testa o tratamento de erro HTTP (ex: 500 Erro Interno do Servidor) SEM retries.
@@ -396,6 +393,8 @@ def test_post_com_dados_vazios(cliente_http, requests_mock):
     """Testa uma requisição POST com dados vazios (dicionário vazio e None)."""
     ponto_final_teste = "empty_data_post"
     resposta_mock = {"status": "success", "received_data": {}}
+
+#------------------------- CENÁRIOS --------------------------
 
     # Cenário 1: dados={} (envia um JSON vazio {})
     requests_mock.post(f"{cliente_http.url_base}/{ponto_final_teste}", json=resposta_mock, status_code=200)

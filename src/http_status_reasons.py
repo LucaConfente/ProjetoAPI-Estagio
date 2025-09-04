@@ -1,4 +1,6 @@
 # Mapeamento de status HTTP para reason phrase padrão
+
+
 HTTP_STATUS_REASONS = {
     400: "Bad Request",
     401: "Unauthorized",

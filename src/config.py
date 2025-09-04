@@ -5,27 +5,23 @@ import logging
 import os
 from dotenv import load_dotenv
 
-# Importe sua exceção personalizada para erros de configuração
 from src.exceptions import OpenAIConfigurationError
 
-# Configuração básica de logging para o próprio módulo config.py
 # O nível do logger root será ajustado dinamicamente por Config.get_instance()
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Carrega as variáveis de ambiente do arquivo .env, se existir
+# Carrega as variáveis env
 load_dotenv()
 
 class Config(BaseSettings):
-    LOG_LEVEL_STR: str = "INFO"  # Usado para compatibilidade com logconfig. Pode ser ajustado conforme necessário.
+    LOG_LEVEL_STR: str = "INFO"  # nivel padrao 
     """
     Classe de configuração do projeto OpenAI Integration Hub.
     Carrega as configurações a partir de variáveis de ambiente e/ou arquivo .env
     usando Pydantic Settings.
     """
     
-    # Configuração do Pydantic Settings para carregar do .env
-    # 'extra='ignore'' permite que variáveis não definidas na classe sejam ignoradas no .env
     model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8', extra='ignore')
 
     # --- Configurações da API OpenAI ---
@@ -38,7 +34,7 @@ class Config(BaseSettings):
     OPENAI_BACKOFF_FACTOR: float = Field(0.5, description="Fator de backoff exponencial para retries da API OpenAI.")
 
     # --- Configurações de Logging ---
-    # Mapeamento de strings de nível de log para constantes de logging
+    # Mapeamento de nível de log 
     _LOG_LEVEL_MAPPING = {
         "DEBUG": logging.DEBUG,
         "INFO": logging.INFO,
@@ -105,7 +101,7 @@ class Config(BaseSettings):
                 details=str(e)
             ) from e
 
-# Bloco para testar o carregamento das configurações quando o script é executado diretamente
+#= testar o carregamento das configuraçoes quando o script é executado diretamente
 if __name__ == "__main__":
     print("Iniciando teste de carregamento de configurações...")
     try:
@@ -125,7 +121,7 @@ if __name__ == "__main__":
         print(f"LOG_FORMAT: {settings.LOG_FORMAT}")
         print("\nConfigurações carregadas com sucesso!")
 
-        # Exemplo de uso do logger após configuração
+        # Exemplo de uso do logger apos configuração
         logger.debug("Esta é uma mensagem de debug (se o nível do root permitir).")
         logger.info("Esta é uma mensagem de informação.")
         logger.warning("Esta é uma mensagem de aviso.")

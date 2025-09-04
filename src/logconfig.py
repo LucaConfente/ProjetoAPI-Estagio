@@ -1,4 +1,4 @@
-# src/logconfig.py
+
 import logging
 import os
 from logging.handlers import RotatingFileHandler
@@ -10,7 +10,7 @@ try:
 except ImportError:
     # Fallback para ambientes de teste ou inicialização incompleta
     print("AVISO: Não foi possível importar 'Config' de 'src.config'. A configuração do logger raiz pode ser incompleta.")
-    # Define um logger dummy para evitar NameError se 'logger' não for definido
+    
     logger = logging.getLogger(__name__)
     # Cria uma classe Config dummy para que o código continue funcionando sem erros de importação
     class Config:
@@ -82,7 +82,7 @@ def configurar_logging(logger_name: str, log_file_path: str = None) -> logging.L
 
     return logger_instance
 
-# --- Configuração do Logger Raiz (Root Logger) ---
+# --- Configuração do Logger Raiz  ---
 # Esta função é executada UMA VEZ quando o módulo `logconfig.py` é importado pela primeira vez.
 
 @lru_cache(maxsize=1) # Garante seja executada apenas uma vez
@@ -102,7 +102,5 @@ def _configure_root_logger_from_config():
         root_logger.setLevel(logging.INFO) # Default para INFO se a config falhar
         logger.error(f"ERRO: Falha ao configurar o logger raiz a partir de Config. Usando INFO como padrão. Detalhes: {e}")
    
-
-# Chama a função para configurar o logger raiz quando o módulo é importado.
 
 _configure_root_logger_from_config()

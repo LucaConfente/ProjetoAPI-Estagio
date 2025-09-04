@@ -79,7 +79,7 @@ class OpenAIAPIError(OpenAIClientError):
         self.status_code = status_code
         self.error_details = error_details
 
-# --- Novas Implementações Sugeridas ---
+
 
 class OpenAIConfigurationError(Exception): # Ou a sua exceção base customizada
     """
@@ -94,7 +94,7 @@ class OpenAIConfigurationError(Exception): # Ou a sua exceção base customizada
             details (str, optional): Detalhes adicionais sobre o erro. Defaults to None.
         """
         super().__init__(message)
-        self.details = details # Armazena os detalhes para acesso posterior, se necessário
+        self.details = details 
 
 
 

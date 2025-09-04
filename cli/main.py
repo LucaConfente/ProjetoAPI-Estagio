@@ -32,12 +32,14 @@ def cli(ctx):
     Gerencia a inicialização, configuração e execução de comandos.
     """
     try:
-        # Obtém a instância singleton da Config.
-        # Isso carregará as variáveis de ambiente (incluindo OPENAI_API_KEY) via Pydantic.
+        # Permite sobrescrever a chave via variável de ambiente no terminal
+        api_key_env = os.environ.get("OPENAI_API_KEY")
         app_config = Config.get_instance()
+        if api_key_env:
+            app_config.OPENAI_API_KEY = api_key_env
         openai.api_key = app_config.OPENAI_API_KEY
 
-        ctx.obj = app_config 
+        ctx.obj = app_config
 
         logger.info("CLI inicializada e configuração da aplicação carregada com sucesso.")
         logger.debug("Mensagem de debug da inicialização da CLI.")
@@ -104,5 +106,37 @@ def chat(app_config: Config, message: str, model: str): # Adiciona 'app_config' 
         click.echo(f"Ocorreu um erro crítico e inesperado: {e}", err=True)
         sys.exit(1)
 
+@cli.command()
+@click.argument('endpoint')
+@click.option('--params', default=None, help='Parâmetros de consulta em JSON (opcional).')
+@click.pass_obj
+def obter(app_config: Config, endpoint: str, params: str):
+    """Realiza uma requisição GET para o endpoint informado."""
+    from src.http_client import ClienteHttpOpenAI
+    import json
+    cliente = ClienteHttpOpenAI()
+    try:
+        params_dict = json.loads(params) if params else None
+        resposta = cliente.obter(endpoint, params=params_dict)
+        click.echo(f"Resposta: {resposta}")
+    except Exception as e:
+        click.echo(f"Erro ao executar GET: {e}", err=True)
+
+@cli.command()
+@click.argument('endpoint')
+@click.option('--dados', default=None, help='Dados para POST em JSON.')
+@click.pass_obj
+def enviar(app_config: Config, endpoint: str, dados: str):
+    """Realiza uma requisição POST para o endpoint informado."""
+    from src.http_client import ClienteHttpOpenAI
+    import json
+    cliente = ClienteHttpOpenAI()
+    try:
+        dados_dict = json.loads(dados) if dados else None
+        resposta = cliente.enviar(endpoint, dados=dados_dict)
+        click.echo(f"Resposta: {resposta}")
+    except Exception as e:
+        click.echo(f"Erro ao executar POST: {e}", err=True)
+
 if __name__ == "__main__":
-    cli() 
+    cli()
