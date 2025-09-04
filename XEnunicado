@@ -332,10 +332,10 @@ O **OpenAI Integration Hub** é uma biblioteca modular e reutilizável para inte
 
 - [X] Criar módulo de chat completions
 - [X] Implementar módulo de text completions
-- [ ] Desenvolver sistema de contexto
-- [ ] Adicionar validadores
-- [ ] Criar formatadores
-- [ ] Testes de integração
+- [X] Desenvolver sistema de contexto
+- [] Adicionar validadores
+- [] Criar formatadores
+- [] Testes de integração
 
 #### Marco de Entrega
 
