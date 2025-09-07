@@ -138,5 +138,129 @@ def enviar(app_config: Config, endpoint: str, dados: str):
     except Exception as e:
         click.echo(f"Erro ao executar POST: {e}", err=True)
 
+
+# Comando para modo interativo de chat
+@cli.command()
+@click.option('--model', default='gpt-3.5-turbo', help='Modelo OpenAI a ser usado.')
+@click.pass_obj
+def interativo(app_config: Config, model: str):
+    """Inicia um chat interativo com o modelo OpenAI."""
+    from src.chat import ChatModule
+    import json
+    import datetime
+    import colorama
+    colorama.init(autoreset=True)
+    click.echo(f"Modo interativo iniciado (modelo: {model}). Comandos: /sair, /limpar, /ajuda, /salvar, /carregar, /historico")
+    chat_module = ChatModule()
+    contexto = []
+    historico = []
+    def print_ajuda():
+        click.echo("\nComandos disponíveis:")
+        click.echo("  /sair      - Sair do modo interativo")
+        click.echo("  /limpar    - Limpar a conversa atual")
+        click.echo("  /ajuda     - Mostrar esta ajuda")
+        click.echo("  /salvar    - Salvar conversa atual em arquivo")
+        click.echo("  /carregar  - Carregar conversa de arquivo")
+        click.echo("  /historico - Exibir histórico desta sessão\n")
+    LIMITE_CONTEXTO = 10  # Enviar apenas as últimas 10 mensagens para o modelo
+    while True:
+        user_input = input("Você: ")
+        if user_input.strip().startswith("/"):
+            comando = user_input.strip().lower()
+            if comando in ["/sair", "/exit", "/quit"]:
+                click.echo("Encerrando modo interativo.")
+                break
+            elif comando == "/limpar":
+                contexto.clear()
+                click.echo("Conversa limpa.")
+            elif comando == "/ajuda":
+                print_ajuda()
+            elif comando == "/salvar":
+                nome = f"conversa_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                with open(nome, "w", encoding="utf-8") as f:
+                    json.dump(contexto, f, ensure_ascii=False, indent=2)
+                click.echo(f"Conversa salva em {nome}.")
+            elif comando == "/carregar":
+                nome = input("Arquivo para carregar: ")
+                try:
+                    with open(nome, "r", encoding="utf-8") as f:
+                        contexto.clear()
+                        contexto.extend(json.load(f))
+                    click.echo(f"Conversa carregada de {nome}.")
+                except Exception as e:
+                    click.echo(f"Erro ao carregar: {e}", err=True)
+            elif comando == "/historico":
+                if not historico:
+                    click.echo("Nenhuma conversa registrada nesta sessão.")
+                else:
+                    click.echo("\nHistórico desta sessão:")
+                    for i, conv in enumerate(historico, 1):
+                        click.echo(f"[{i}] {conv}")
+            else:
+                click.echo("Comando não reconhecido. Use /ajuda para ver os comandos.")
+            continue
+        contexto.append({"role": "user", "content": user_input})
+        # Limitar o contexto enviado para o modelo
+        contexto_envio = contexto[-LIMITE_CONTEXTO:]
+        click.echo(colorama.Fore.YELLOW + "Aguardando resposta..." + colorama.Style.RESET_ALL)
+        try:
+            resposta = chat_module.criar_conversa(mensagens=contexto_envio, modelo=model)
+            resposta_texto = resposta['choices'][0]['message']['content']
+            contexto.append({"role": "assistant", "content": resposta_texto})
+            historico.append(f"Você: {user_input}\nOpenAI: {resposta_texto}")
+            click.echo(colorama.Fore.GREEN + "OpenAI:" + colorama.Style.RESET_ALL)
+            click.echo(colorama.Fore.CYAN + resposta_texto + colorama.Style.RESET_ALL)
+        except Exception as e:
+            click.echo(f"Erro: {e}", err=True)
+
+
+# Comando para exibir configurações atuais
+@cli.command()
+@click.pass_obj
+def config(app_config: Config):
+    """Exibe as configurações atuais da aplicação."""
+    click.echo("Configurações atuais:")
+    for k, v in vars(app_config).items():
+        click.echo(f"{k}: {v}")
+
+# Comando para testar conexão com a API (valida a chave)
+@cli.command()
+@click.pass_obj
+def test_connection(app_config: Config):
+    """Testa se a chave da API está funcionando."""
+    import requests
+    try:
+        response = requests.get(
+            "https://api.openai.com/v1/models",
+            headers={"Authorization": f"Bearer {app_config.OPENAI_API_KEY}"}
+        )
+        if response.status_code == 200:
+            click.echo("Conexão bem-sucedida! Sua chave está válida.")
+        else:
+            click.echo(f"Falha na conexão. Código: {response.status_code} - {response.text}", err=True)
+    except Exception as e:
+        click.echo(f"Erro ao testar conexão: {e}", err=True)
+
+# Comando para listar modelos disponíveis
+@cli.command()
+@click.pass_obj
+def listar_modelos(app_config: Config):
+    """Lista os modelos disponíveis na OpenAI para sua chave."""
+    import requests
+    try:
+        response = requests.get(
+            "https://api.openai.com/v1/models",
+            headers={"Authorization": f"Bearer {app_config.OPENAI_API_KEY}"}
+        )
+        if response.status_code == 200:
+            modelos = response.json().get("data", [])
+            click.echo("Modelos disponíveis:")
+            for modelo in modelos:
+                click.echo(f"- {modelo.get('id')}")
+        else:
+            click.echo(f"Erro ao listar modelos. Código: {response.status_code} - {response.text}", err=True)
+    except Exception as e:
+        click.echo(f"Erro ao listar modelos: {e}", err=True)
+
 if __name__ == "__main__":
     cli()

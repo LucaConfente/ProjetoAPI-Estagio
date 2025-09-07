@@ -351,8 +351,8 @@ O **OpenAI Integration Hub** é uma biblioteca modular e reutilizável para inte
 
 #### Tarefas
 
-- [ ] Estruturar aplicação CLI
-- [ ] Implementar comandos principais
+- [X] Estruturar aplicação CLI
+- [X] Implementar comandos principais # chat, obter, enviar, config, test-connection, listar-modelos
 - [ ] Criar modo interativo
 - [ ] Desenvolver sistema de help
 - [ ] Adicionar formatação de saída

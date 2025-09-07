@@ -111,3 +111,16 @@
 2025-09-05 22:08:42,112 - command_processor.comando_falha - INFO - Tentando executar comando: 'comando_falha'
 2025-09-05 22:08:42,112 - command_processor.comando_falha - WARNING - Comando 'comando_falha' encontrou um aviso.
 2025-09-05 22:08:42,112 - command_processor.comando_falha - ERROR - Comando 'comando_falha' falhou na execução.
+2025-09-06 17:09:55,124 - command_processor.comando_sucesso - INFO - Tentando executar comando: 'comando_sucesso'
+2025-09-06 17:09:55,155 - command_processor.comando_sucesso - DEBUG - Comando 'comando_sucesso' executado com sucesso.
+2025-09-06 17:09:55,157 - command_processor.comando_falha - INFO - Tentando executar comando: 'comando_falha'
+2025-09-06 17:09:55,157 - command_processor.comando_falha - WARNING - Comando 'comando_falha' encontrou um aviso.
+2025-09-06 17:09:55,157 - command_processor.comando_falha - ERROR - Comando 'comando_falha' falhou na execução.
+2025-09-06 18:01:16,102 - __main__ - INFO - CLI inicializada e configuração da aplicação carregada com sucesso.
+2025-09-06 18:01:16,103 - __main__ - DEBUG - Mensagem de debug da inicialização da CLI.
+2025-09-06 18:04:20,826 - __main__ - INFO - CLI inicializada e configuração da aplicação carregada com sucesso.
+2025-09-06 18:04:20,827 - __main__ - DEBUG - Mensagem de debug da inicialização da CLI.
+2025-09-07 14:08:42,870 - __main__ - INFO - CLI inicializada e configuração da aplicação carregada com sucesso.
+2025-09-07 14:08:42,870 - __main__ - DEBUG - Mensagem de debug da inicialização da CLI.
+2025-09-07 14:10:04,441 - __main__ - INFO - CLI inicializada e configuração da aplicação carregada com sucesso.
+2025-09-07 14:10:04,442 - __main__ - DEBUG - Mensagem de debug da inicialização da CLI.
