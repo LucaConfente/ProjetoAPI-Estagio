@@ -1,8 +1,10 @@
+
 import sys
 import os
 from pathlib import Path
 import click
-import openai 
+import openai
+from src.formatters import formatar_resposta_chat, formatar_resposta_completions, formatar_erro, formatar_aviso
 
 
 current_script_dir = Path(__file__).parent.absolute()
@@ -22,8 +24,6 @@ from src.exceptions import (
 
 
 logger = src.logconfig.configurar_logging(__name__)
-
-
 @click.group()
 @click.pass_context # Permite passar um objeto de contexto para os subcomandos
 def cli(ctx):
@@ -56,6 +56,116 @@ def cli(ctx):
         sys.exit(1)
 
 
+# Comando de ajuda deve ser definido após a definição do grupo cli
+@cli.command('help')
+@click.argument('comando', required=False)
+@click.pass_context
+def help_cmd(ctx, comando):
+    """Exibe ajuda detalhada para todos os comandos ou para um comando específico."""
+    import textwrap
+    comandos = {
+        'chat': {
+            'desc': 'Envia uma mensagem para o modelo de chat da OpenAI.',
+            'exemplo': 'python -m cli.main chat --message "Olá" --model gpt-3.5-turbo'
+        },
+        'obter': {
+            'desc': 'Realiza uma requisição GET para o endpoint informado.',
+            'exemplo': 'python -m cli.main obter models'
+        },
+        'enviar': {
+            'desc': 'Realiza uma requisição POST para o endpoint informado.',
+            'exemplo': 'python -m cli.main enviar chat/completions --dados "{\"messages\":[{\"role\":\"user\",\"content\":\"Oi\"}]}"'
+        },
+        'interativo': {
+            'desc': 'Inicia um chat interativo com o modelo OpenAI.',
+            'exemplo': 'python -m cli.main interativo --model gpt-3.5-turbo'
+        },
+        'config': {
+            'desc': 'Exibe as configurações atuais da aplicação.',
+            'exemplo': 'python -m cli.main config'
+        },
+        'test_connection': {
+            'desc': 'Testa se a chave da API está funcionando.',
+            'exemplo': 'python -m cli.main test_connection'
+        },
+        'listar_modelos': {
+            'desc': 'Lista os modelos disponíveis na OpenAI para sua chave.',
+            'exemplo': 'python -m cli.main listar_modelos'
+        },
+    }
+    if not comando:
+        click.echo("\nComandos disponíveis:")
+        for nome, info in comandos.items():
+            click.echo(f"  {nome:15} - {info['desc']}")
+        click.echo("\nUse: python -m cli.main help <comando> para detalhes e exemplos.")
+        click.echo("\nExemplo: python -m cli.main help chat\n")
+        click.echo("Dica: todos os comandos aceitam --help para opções detalhadas.")
+    else:
+        info = comandos.get(comando)
+        if info:
+            click.echo(f"\nAjuda para o comando: {comando}\n")
+            click.echo(textwrap.fill(info['desc'], width=80))
+            click.echo(f"\nExemplo de uso:\n  {info['exemplo']}\n")
+            click.echo(f"Para mais opções: python -m cli.main {comando} --help\n")
+        else:
+            click.echo(f"Comando '{comando}' não encontrado. Use python -m cli.main help para listar todos.")
+
+# Comando de ajuda deve ser definido após a definição do grupo cli
+@cli.command('help')
+@click.argument('comando', required=False)
+@click.pass_context
+def help_cmd(ctx, comando):
+    """Exibe ajuda detalhada para todos os comandos ou para um comando específico."""
+    import textwrap
+    comandos = {
+        'chat': {
+            'desc': 'Envia uma mensagem para o modelo de chat da OpenAI.',
+            'exemplo': 'python -m cli.main chat --message "Olá" --model gpt-3.5-turbo'
+        },
+        'obter': {
+            'desc': 'Realiza uma requisição GET para o endpoint informado.',
+            'exemplo': 'python -m cli.main obter models'
+        },
+        'enviar': {
+            'desc': 'Realiza uma requisição POST para o endpoint informado.',
+            'exemplo': 'python -m cli.main enviar chat/completions --dados "{\"messages\":[{\"role\":\"user\",\"content\":\"Oi\"}]}"'
+        },
+        'interativo': {
+            'desc': 'Inicia um chat interativo com o modelo OpenAI.',
+            'exemplo': 'python -m cli.main interativo --model gpt-3.5-turbo'
+        },
+        'config': {
+            'desc': 'Exibe as configurações atuais da aplicação.',
+            'exemplo': 'python -m cli.main config'
+        },
+        'test_connection': {
+            'desc': 'Testa se a chave da API está funcionando.',
+            'exemplo': 'python -m cli.main test_connection'
+        },
+        'listar_modelos': {
+            'desc': 'Lista os modelos disponíveis na OpenAI para sua chave.',
+            'exemplo': 'python -m cli.main listar_modelos'
+        },
+    }
+    if not comando:
+        click.echo("\nComandos disponíveis:")
+        for nome, info in comandos.items():
+            click.echo(f"  {nome:15} - {info['desc']}")
+        click.echo("\nUse: python -m cli.main help <comando> para detalhes e exemplos.")
+        click.echo("\nExemplo: python -m cli.main help chat\n")
+        click.echo("Dica: todos os comandos aceitam --help para opções detalhadas.")
+    else:
+        info = comandos.get(comando)
+        if info:
+            click.echo(f"\nAjuda para o comando: {comando}\n")
+            click.echo(textwrap.fill(info['desc'], width=80))
+            click.echo(f"\nExemplo de uso:\n  {info['exemplo']}\n")
+            click.echo(f"Para mais opções: python -m cli.main {comando} --help\n")
+        else:
+            click.echo(f"Comando '{comando}' não encontrado. Use python -m cli.main help para listar todos.")
+            return
+
+
 ## define o comando chat
 @cli.command()
 @click.option("--message", required=True, help="A mensagem para enviar ao modelo.")
@@ -68,42 +178,39 @@ def chat(app_config: Config, message: str, model: str): # Adiciona 'app_config' 
         # ou, idealmente, receber a app_config ou a chave diretamente.
         chat_module = ChatModule() 
         logger.info(f"Iniciando comando 'chat' com mensagem: '{message}' e modelo: '{model}'")
-        
         response = chat_module.criar_conversa(mensagens=[{"role": "user", "content": message}], modelo=model)
-        
-        click.echo(f"Resposta: {response['choices'][0]['message']['content']}")
+        click.echo(formatar_resposta_chat(response))
         logger.info("Comando 'chat' executado com sucesso.")
-
     # Tratamento de exceções específicas da OpenAI
     except OpenAIConfigurationError as e:
         logger.error(f"Erro de Configuração: {e.message}", exc_info=True)
-        click.echo(f"Erro de Configuração: {e.message}", err=True)
+        click.echo(formatar_erro(e.message), err=True)
         if e.config_key:
-            click.echo(f"Por favor, verifique a configuração de '{e.config_key}'.", err=True)
+            click.echo(formatar_aviso(f"Por favor, verifique a configuração de '{e.config_key}'."), err=True)
         sys.exit(1)
     except OpenAIAuthenticationError as e:
         logger.error(f"Erro de Autenticação: {e.message}", exc_info=True)
-        click.echo(f"Erro de Autenticação: {e.message}", err=True)
-        click.echo("Verifique sua chave da API OpenAI.", err=True)
+        click.echo(formatar_erro(e.message), err=True)
+        click.echo(formatar_aviso("Verifique sua chave da API OpenAI."), err=True)
         sys.exit(1)
     except OpenAIRateLimitError as e:
         logger.error(f"Erro de Limite de Requisições: {e.message}", exc_info=True)
-        click.echo(f"Erro de Limite de Requisições: {e.message}", err=True)
-        click.echo("Você excedeu o limite de requisições. Tente novamente mais tarde.", err=True)
+        click.echo(formatar_erro(e.message), err=True)
+        click.echo(formatar_aviso("Você excedeu o limite de requisições. Tente novamente mais tarde."), err=True)
         sys.exit(1)
     except OpenAIValidationError as e:
         logger.error(f"Erro de Validação: {e.message}", exc_info=True)
-        click.echo(f"Erro de Validação: {e.message}", err=True)
+        click.echo(formatar_erro(e.message), err=True)
         if e.field:
-            click.echo(f"Campo inválido: '{e.field}'.", err=True)
+            click.echo(formatar_aviso(f"Campo inválido: '{e.field}'."), err=True)
         sys.exit(1)
     except OpenAIClientError as e:
         logger.error(f"Ocorreu um erro inesperado da OpenAI: {e.message}", exc_info=True)
-        click.echo(f"Ocorreu um erro inesperado da OpenAI: {e.message}", err=True)
+        click.echo(formatar_erro(e.message), err=True)
         sys.exit(1)
     except Exception as e: # Captura qualquer outra exceção não tratada
         logger.critical(f"Ocorreu um erro crítico e inesperado no comando 'chat': {e}", exc_info=True)
-        click.echo(f"Ocorreu um erro crítico e inesperado: {e}", err=True)
+        click.echo(formatar_erro(str(e)), err=True)
         sys.exit(1)
 
 @cli.command()
@@ -118,9 +225,9 @@ def obter(app_config: Config, endpoint: str, params: str):
     try:
         params_dict = json.loads(params) if params else None
         resposta = cliente.obter(endpoint, params=params_dict)
-        click.echo(f"Resposta: {resposta}")
+        click.echo(formatar_resposta_completions(resposta))
     except Exception as e:
-        click.echo(f"Erro ao executar GET: {e}", err=True)
+        click.echo(formatar_erro(f"Erro ao executar GET: {e}"), err=True)
 
 @cli.command()
 @click.argument('endpoint')
@@ -134,9 +241,9 @@ def enviar(app_config: Config, endpoint: str, dados: str):
     try:
         dados_dict = json.loads(dados) if dados else None
         resposta = cliente.enviar(endpoint, dados=dados_dict)
-        click.echo(f"Resposta: {resposta}")
+        click.echo(formatar_resposta_completions(resposta))
     except Exception as e:
-        click.echo(f"Erro ao executar POST: {e}", err=True)
+        click.echo(formatar_erro(f"Erro ao executar POST: {e}"), err=True)
 
 
 # Comando para modo interativo de chat
@@ -219,7 +326,7 @@ def interativo(app_config: Config, model: str):
 @click.pass_obj
 def config(app_config: Config):
     """Exibe as configurações atuais da aplicação."""
-    click.echo("Configurações atuais:")
+    click.echo(formatar_aviso("Configurações atuais:"))
     for k, v in vars(app_config).items():
         click.echo(f"{k}: {v}")
 
@@ -235,11 +342,11 @@ def test_connection(app_config: Config):
             headers={"Authorization": f"Bearer {app_config.OPENAI_API_KEY}"}
         )
         if response.status_code == 200:
-            click.echo("Conexão bem-sucedida! Sua chave está válida.")
+            click.echo(formatar_aviso("Conexão bem-sucedida! Sua chave está válida."))
         else:
-            click.echo(f"Falha na conexão. Código: {response.status_code} - {response.text}", err=True)
+            click.echo(formatar_erro(f"Falha na conexão. Código: {response.status_code} - {response.text}"), err=True)
     except Exception as e:
-        click.echo(f"Erro ao testar conexão: {e}", err=True)
+        click.echo(formatar_erro(f"Erro ao testar conexão: {e}"), err=True)
 
 # Comando para listar modelos disponíveis
 @cli.command()
@@ -254,13 +361,13 @@ def listar_modelos(app_config: Config):
         )
         if response.status_code == 200:
             modelos = response.json().get("data", [])
-            click.echo("Modelos disponíveis:")
+            click.echo(formatar_aviso("Modelos disponíveis:"))
             for modelo in modelos:
                 click.echo(f"- {modelo.get('id')}")
         else:
-            click.echo(f"Erro ao listar modelos. Código: {response.status_code} - {response.text}", err=True)
+            click.echo(formatar_erro(f"Erro ao listar modelos. Código: {response.status_code} - {response.text}"), err=True)
     except Exception as e:
-        click.echo(f"Erro ao listar modelos: {e}", err=True)
+        click.echo(formatar_erro(f"Erro ao listar modelos: {e}"), err=True)
 
 if __name__ == "__main__":
     cli()

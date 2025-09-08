@@ -126,3 +126,52 @@
 2025-09-07 14:10:04,442 - __main__ - DEBUG - Mensagem de debug da inicialização da CLI.
 2025-09-07 15:17:31,810 - __main__ - INFO - CLI inicializada e configuração da aplicação carregada com sucesso.
 2025-09-07 15:17:31,810 - __main__ - DEBUG - Mensagem de debug da inicialização da CLI.
+2025-09-07 22:20:37,435 - __main__ - INFO - CLI inicializada e configuração da aplicação carregada com sucesso.
+2025-09-07 22:20:37,436 - __main__ - DEBUG - Mensagem de debug da inicialização da CLI.
+2025-09-07 22:20:37,436 - __main__ - INFO - Iniciando comando 'chat' com mensagem: 'Olá, tudo bem?' e modelo: 'gpt-3.5-turbo'
+2025-09-07 22:20:38,090 - __main__ - ERROR - Erro de Autenticação: 401 - Unauthorized | Detalhes da API: Incorrect API key provided: sk-proj-*********************************************************************************************************************************************************4IA". You can find your API key at https://platform.openai.com/account/api-keys.
+Traceback (most recent call last):
+  File "D:\Luca\Estágio IAS\projeto API\ProjetoAPI-Estagio\src\http_client.py", line 152, in _realizar_requisicao
+    resposta.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\requests\models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 401 Client Error: Unauthorized for url: https://api.openai.com/v1/chat/completions
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Luca\Estágio IAS\projeto API\ProjetoAPI-Estagio\cli\main.py", line 181, in chat
+    response = chat_module.criar_conversa(mensagens=[{"role": "user", "content": message}], modelo=model)
+  File "D:\Luca\Estágio IAS\projeto API\ProjetoAPI-Estagio\src\chat.py", line 18, in criar_conversa
+    return self.cliente_http.enviar("chat/completions", dados=payload)
+           ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Luca\Estágio IAS\projeto API\ProjetoAPI-Estagio\src\http_client.py", line 46, in enviar
+    return self._realizar_requisicao("POST", ponto_final, json=dados, headers=headers)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Luca\Estágio IAS\projeto API\ProjetoAPI-Estagio\src\http_client.py", line 205, in _realizar_requisicao
+    self._tratar_erro_resposta(e.response)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "D:\Luca\Estágio IAS\projeto API\ProjetoAPI-Estagio\src\http_client.py", line 108, in _tratar_erro_resposta
+    raise OpenAIAuthenticationError(mensagem_erro, status_code=codigo_status, error_details=error_details)
+src.exceptions.OpenAIAuthenticationError: 401 - Unauthorized | Detalhes da API: Incorrect API key provided: sk-proj-*********************************************************************************************************************************************************4IA". You can find your API key at https://platform.openai.com/account/api-keys. Detalhes: {'message': 'Incorrect API key provided: sk-proj-*********************************************************************************************************************************************************4IA". You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}
+2025-09-07 22:20:49,873 - __main__ - INFO - CLI inicializada e configuração da aplicação carregada com sucesso.
+2025-09-07 22:20:49,874 - __main__ - DEBUG - Mensagem de debug da inicialização da CLI.
+2025-09-07 22:20:49,875 - __main__ - INFO - Iniciando comando 'chat' com mensagem: 'Olá, tudo bem?' e modelo: 'gpt-3.5-turbo'
+2025-09-07 22:20:51,798 - __main__ - INFO - Comando 'chat' executado com sucesso.
+2025-09-07 22:21:31,941 - __main__ - INFO - CLI inicializada e configuração da aplicação carregada com sucesso.
+2025-09-07 22:21:31,942 - __main__ - DEBUG - Mensagem de debug da inicialização da CLI.
+2025-09-07 22:21:54,629 - __main__ - INFO - CLI inicializada e configuração da aplicação carregada com sucesso.
+2025-09-07 22:21:54,629 - __main__ - DEBUG - Mensagem de debug da inicialização da CLI.
+2025-09-07 22:54:34,513 - __main__ - INFO - CLI inicializada e configuração da aplicação carregada com sucesso.
+2025-09-07 22:54:34,513 - __main__ - DEBUG - Mensagem de debug da inicialização da CLI.
+2025-09-07 22:55:56,515 - __main__ - INFO - CLI inicializada e configuração da aplicação carregada com sucesso.
+2025-09-07 22:55:56,515 - __main__ - DEBUG - Mensagem de debug da inicialização da CLI.
+2025-09-07 22:56:07,951 - __main__ - INFO - CLI inicializada e configuração da aplicação carregada com sucesso.
+2025-09-07 22:56:07,951 - __main__ - DEBUG - Mensagem de debug da inicialização da CLI.
+2025-09-07 22:56:17,733 - __main__ - INFO - CLI inicializada e configuração da aplicação carregada com sucesso.
+2025-09-07 22:56:17,734 - __main__ - DEBUG - Mensagem de debug da inicialização da CLI.
+2025-09-07 23:06:17,230 - __main__ - INFO - CLI inicializada e configuração da aplicação carregada com sucesso.
+2025-09-07 23:06:17,231 - __main__ - DEBUG - Mensagem de debug da inicialização da CLI.
+2025-09-07 23:06:17,231 - __main__ - INFO - Iniciando comando 'chat' com mensagem: 'Olá' e modelo: 'gpt-3.5-turbo'
+2025-09-07 23:06:18,653 - __main__ - INFO - Comando 'chat' executado com sucesso.

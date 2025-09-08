@@ -513,4 +513,5 @@ def test_metricas_de_uso_registram_sucesso_e_falha():
     assert metricas['requisicoes_falha'] == 1
     assert len(metricas['ultimos_status']) == 2
     assert metricas['ultimos_status'][0] == 200
-    assert metricas['ultimos_status'][1] == 500 or metricas['ultimos_status'][1] == 'erro'
+    # Aceita tanto 500 quanto 'erro' como status de falha
+    assert metricas['ultimos_status'][1] in (500, 'erro')
