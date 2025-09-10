@@ -84,3 +84,15 @@ if __name__ == "__main__":
 ```
 
 Se precisar de comandos para arquivos específicos ou exemplos de uso, só pedir!
+
+
+## FASTAPI COMANDOS 
+
+/ — Mensagem de status da API (GET)
+/health — Verifica se a API está rodando (GET)
+/models — Lista os modelos disponíveis (GET)
+/config — Mostra a configuração atual da API (GET)
+/completions — Gera texto a partir de um prompt (POST)
+/chat — Envia mensagens para o modelo de chat (POST)
+docs — Documentação interativa Swagger (GET)
+/redoc — Outra visualização de documentação (GET)
