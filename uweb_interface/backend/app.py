@@ -1,5 +1,7 @@
-
-from fastapi import FastAPI, HTTPException
+# Endpoint para checar autenticação
+from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import os
 from uweb_interface.backend.schemas import ChatRequest, ChatResponse, CompletionRequest, CompletionResponse, ModelListResponse, ConfigResponse
 from src.chat import ChatModule
 from src.http_client import ClienteHttpOpenAI
@@ -9,6 +11,22 @@ from src.config import Config
 app = FastAPI()
 
 
+# --- Autenticação Bearer Token ---
+security = HTTPBearer()
+API_AUTH_TOKEN = os.getenv("API_AUTH_TOKEN", "API_AUTH_TOKEN")  # Defina no .env para produção
+
+def authenticate(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    if credentials.scheme.lower() != "bearer" or credentials.credentials != API_AUTH_TOKEN:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de autenticação inválido ou ausente.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+@app.get("/auth-check", dependencies=[Depends(authenticate)])
+def auth_check():
+    return {"detail": "Autorização concedida!"}
+
 # Endpoint raiz para evitar 404 e orientar o usuário
 @app.get("/")
 def root():
@@ -17,7 +35,7 @@ def root():
 def health_check():
     return {"status": "ok"}
 
-@app.post("/completions", response_model=CompletionResponse)
+@app.post("/completions", response_model=CompletionResponse, dependencies=[Depends(authenticate)])
 def completions_endpoint(payload: CompletionRequest):
     try:
         cliente = ClienteHttpOpenAI()
@@ -33,7 +51,7 @@ def completions_endpoint(payload: CompletionRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/models", response_model=ModelListResponse)
+@app.get("/models", response_model=ModelListResponse, dependencies=[Depends(authenticate)])
 def list_models():
     try:
         cliente = ClienteHttpOpenAI()
@@ -43,7 +61,7 @@ def list_models():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/config", response_model=ConfigResponse)
+@app.get("/config", response_model=ConfigResponse, dependencies=[Depends(authenticate)])
 def get_config():
     try:
         config = Config.get_instance()
@@ -51,7 +69,7 @@ def get_config():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/chat", response_model=ChatResponse)
+@app.post("/chat", response_model=ChatResponse, dependencies=[Depends(authenticate)])
 def chat_endpoint(payload: ChatRequest):
     try:
         chat_module = ChatModule()
