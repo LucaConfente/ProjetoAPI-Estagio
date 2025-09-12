@@ -374,7 +374,7 @@ O **OpenAI Integration Hub** é uma biblioteca modular e reutilizável para inte
 - [X] Configurar framework web
 - [X] Criar endpoints principais
 - [X] Implementar autenticação
-- [ ] Configurar CORS
+- [X] Configurar CORS
 - [ ] Documentar API
 
 #### Marco de Entrega
