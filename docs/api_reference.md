@@ -45,3 +45,71 @@ from src.http_client import ClienteHttpOpenAI
 cliente = ClienteHttpOpenAI()
 resposta = cliente.obter('models')
 print(resposta)
+```
+
+# Endpoints REST da API (FastAPI)
+
+## Autenticação
+Todos os endpoints (exceto `/` e `/health`) exigem Bearer Token:
+
+```
+Authorization: Bearer <API_AUTH_TOKEN>
+```
+
+## Endpoints
+
+### GET /
+Mensagem de status da API (confirma que está rodando).
+
+### GET /health
+Verifica se a API está funcionando (retorna `{ "status": "ok" }`).
+
+### GET /models
+Lista os modelos disponíveis na sua conta OpenAI.
+**Requer autenticação.**
+
+### GET /config
+Retorna a configuração atual da API (ex: variáveis de ambiente carregadas).
+**Requer autenticação.**
+
+### POST /completions
+Gera texto a partir de um prompt usando modelos do tipo "completion" (se disponíveis).
+**Requer autenticação.**
+
+Exemplo de corpo:
+```json
+{
+  "prompt": "Diga olá em inglês.",
+  "model": "text-davinci-003",
+  "max_tokens": 20,
+  "temperature": 0.5
+}
+```
+
+### POST /chat
+Envia mensagens para o modelo de chat (ex: gpt-3.5-turbo, gpt-4) e recebe respostas reais.
+**Requer autenticação.**
+
+Exemplo de corpo:
+```json
+{
+  "messages": [
+    { "role": "user", "content": "Explique buracos negros." }
+  ],
+  "model": "gpt-3.5-turbo"
+}
+```
+
+### GET /docs
+Interface Swagger interativa para testar e visualizar todos os endpoints.
+
+### GET /auth-check
+Retorna `{ "detail": "Autorização concedida!" }` se o token estiver correto.
+**Requer autenticação.**
+
+## CORS
+O backend está configurado para aceitar requisições de diferentes origens (CORS), permitindo integração com frontends web.
+
+## Observações
+- Todos os endpoints retornam erros claros em caso de autenticação inválida ou falta de parâmetros.
+- Para produção, ajuste `allow_origins` no CORS para maior segurança.
