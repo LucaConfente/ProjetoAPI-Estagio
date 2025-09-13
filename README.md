@@ -4,26 +4,87 @@ O OpenAI Integration Hub é um projeto que visa criar uma biblioteca modular e r
 
 Com interfaces CLI e Web, ele oferece flexibilidade para desenvolvedores e uma experiência amigável para usuários. Este projeto é um exemplo prático de como construir integrações robustas e manuteníveis, focando em princípios de clean code, tratamento de erros e otimização.
 
-# Como rodar o backend FastAPI
+# Passo a Passo Completo
 
-1. Instale as dependências (se ainda não fez):
-	```
-	pip install -r requirements.txt
-	```
+## 1. Instalação
 
-2. Para rodar o backend web (FastAPI):
-	```
-	python run.py
-	```
-	Ou, se preferir, use diretamente o Uvicorn:
-	```
-	python -m uvicorn uweb_interface.backend.app:app --reload
-	```
+```bash
+pip install -r requirements.txt
+```
 
-3. Acesse a documentação interativa em:
-	http://127.0.0.1:8000/docs
+## 2. Configuração do Ambiente
 
-Esses comandos devem ser executados a partir da raiz do projeto.
+Crie um arquivo `.env` na raiz do projeto com o seguinte conteúdo (exemplo):
+
+```
+OPENAI_API_KEY=sua_chave_openai_aqui
+API_AUTH_TOKEN=API_LUCA  # ou outro token seguro
+LOG_LEVEL=INFO
+```
+
+## 3. Rodando o Backend (FastAPI)
+
+```bash
+python run.py
+```
+Ou, se preferir, diretamente com Uvicorn:
+```bash
+python -m uvicorn uweb_interface.backend.app:app --reload
+```
+
+Acesse a documentação interativa em: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+
+## 4. Autenticação
+
+A maioria dos endpoints exige autenticação Bearer Token. Use o valor de `API_AUTH_TOKEN` do seu `.env`.
+
+No Swagger UI, clique em "Authorize" e insira o token.
+No Postman/curl, adicione o header:
+```
+Authorization: Bearer API_LUCA
+```
+
+## 5. Principais Endpoints
+
+- `GET /` — Status da API
+- `GET /health` — Health check
+- `GET /models` — Lista de modelos (autenticado)
+- `GET /config` — Configuração da API (autenticado)
+- `POST /completions` — Geração de texto (autenticado)
+- `POST /chat` — Chat com IA (autenticado)
+- `GET /docs` — Swagger UI
+- `GET /auth-check` — Testa se o token está correto
+
+## 6. Exemplos de Uso
+
+### Exemplo de requisição para `/chat` (curl):
+```bash
+curl -X POST "http://127.0.0.1:8000/chat" \
+  -H "Authorization: Bearer API_LUCA" \
+  -H "Content-Type: application/json" \
+  -d '{"messages":[{"role":"user","content":"Olá!"}],"model":"gpt-3.5-turbo"}'
+```
+
+### Exemplo de requisição para `/completions` (curl):
+```bash
+curl -X POST "http://127.0.0.1:8000/completions" \
+  -H "Authorization: Bearer API_LUCA" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Diga olá em inglês.", "model": "text-davinci-003", "max_tokens": 20, "temperature": 0.5}'
+```
+
+## 7. CORS
+
+O backend já está configurado para aceitar requisições de diferentes origens (CORS), permitindo integração com frontends web.
+
+## 8. Documentação Detalhada
+
+- [Referência da API (endpoints, exemplos, autenticação)](docs/api_reference.md)
+- [Guia de uso da CLI](docs/usage_guides/cli_guide.md)
+
+---
+
+Esses passos garantem que qualquer pessoa consiga rodar, autenticar e testar o backend rapidamente!
 
 
 
