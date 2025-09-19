@@ -2,10 +2,8 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
-# Importe a classe que você quer testar
 from src.chat import ChatModule
 
-# Importe a exceção que você espera que seja levantada
 from src.exceptions import OpenAIValidationError
 
 # --- Testes para o método criar_conversa ---
@@ -15,7 +13,7 @@ def test_criar_conversa_sucesso():
     Testa se criar_conversa chama corretamente o cliente_http.enviar com dados válidos.
     """
     # Mock do ClienteHttpOpenAI e seu método 'enviar'
-    # Usamos patch para substituir ClienteHttpOpenAI globalmente durante o teste
+
     with patch('src.chat.ClienteHttpOpenAI') as MockClienteHttpOpenAI:
         # Configura o mock para retornar uma instância de ClienteHttpOpenAI
         mock_cliente_instance = MockClienteHttpOpenAI.return_value

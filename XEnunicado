@@ -391,7 +391,7 @@ O **OpenAI Integration Hub** é uma biblioteca modular e reutilizável para inte
 
 #### Tarefas
 
-- [ ] Criar estrutura do frontend
+- [X] Criar estrutura do frontend
 - [ ] Desenvolver interfaces
 - [ ] Integrar com backend
 - [ ] Estilização responsiva
