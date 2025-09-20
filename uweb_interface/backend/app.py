@@ -33,6 +33,42 @@ def authenticate(credentials: HTTPAuthorizationCredentials = Depends(security)):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+
+# Endpoint para checar autenticação
+from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
+import os
+from uweb_interface.backend.schemas import ChatRequest, ChatResponse, CompletionRequest, CompletionResponse, ModelListResponse, ConfigResponse
+from src.chat import ChatModule
+from src.http_client import ClienteHttpOpenAI
+from src.config import Config
+
+
+app = FastAPI()
+
+# Configuração do CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Para produção, troque '*' pelo domínio do frontend
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# --- Autenticação Bearer Token ---
+security = HTTPBearer()
+API_AUTH_TOKEN = os.getenv("API_AUTH_TOKEN", "API_AUTH_TOKEN")  # Defina no .env para produção
+
+def authenticate(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    if credentials.scheme.lower() != "bearer" or credentials.credentials != API_AUTH_TOKEN:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de autenticação inválido ou ausente.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
 @app.get("/auth-check", dependencies=[Depends(authenticate)])
 def auth_check():
     return {"detail": "Autorização concedida!"}

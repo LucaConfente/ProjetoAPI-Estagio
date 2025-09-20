@@ -15,7 +15,7 @@ class ChatRequest(BaseModel):
 
 class CompletionRequest(BaseModel):
     prompt: str
-    model: Optional[str] = "text-davinci-003"
+    model: Optional[str] = "gpt-3.5-turbo-instruct"
     max_tokens: Optional[int] = 128
     temperature: Optional[float] = 0.7
 

@@ -1,3 +1,9 @@
+body {
+  margin: 0;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
+  background: linear-gradient(135deg, #d3d3d3 0%, #ffffff 50%, #b3e0ff 100%);
+  min-height: 100vh;
+}
 .App {
   text-align: center;
 }
@@ -25,7 +31,7 @@
 }
 
 .App-link {
-  color: #083e4d;
+  color: #61dafb;
 }
 
 @keyframes App-logo-spin {
