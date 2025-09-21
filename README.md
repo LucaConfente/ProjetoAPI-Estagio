@@ -6,7 +6,7 @@ Com interfaces CLI e Web, ele oferece flexibilidade para desenvolvedores e uma e
 
 # Passo a Passo Completo
 
-## 1. Instalação
+## 1. Instalação dos Requisitos
 
 ```bash
 pip install -r requirements.txt
@@ -22,6 +22,8 @@ API_AUTH_TOKEN=API_LUCA  # ou outro token seguro
 LOG_LEVEL=INFO
 ```
 
+> **Atenção:** Nunca compartilhe sua chave da OpenAI publicamente.
+
 ## 3. Rodando o Backend (FastAPI)
 
 ```bash
@@ -34,7 +36,17 @@ python -m uvicorn uweb_interface.backend.app:app --reload
 
 Acesse a documentação interativa em: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
-## 4. Autenticação
+## 4. Rodando o Frontend (React)
+
+```bash
+cd uweb_interface/frontend/react-app
+npm install
+npm start
+```
+
+Acesse o frontend em: [http://localhost:3000](http://localhost:3000)
+
+## 5. Autenticação
 
 A maioria dos endpoints exige autenticação Bearer Token. Use o valor de `API_AUTH_TOKEN` do seu `.env`.
 
@@ -44,7 +56,7 @@ No Postman/curl, adicione o header:
 Authorization: Bearer API_LUCA
 ```
 
-## 5. Principais Endpoints
+## 6. Principais Endpoints
 
 - `GET /` — Status da API
 - `GET /health` — Health check
@@ -55,7 +67,7 @@ Authorization: Bearer API_LUCA
 - `GET /docs` — Swagger UI
 - `GET /auth-check` — Testa se o token está correto
 
-## 6. Exemplos de Uso
+## 7. Exemplos de Uso
 
 ### Exemplo de requisição para `/chat` (curl):
 ```bash
@@ -73,18 +85,32 @@ curl -X POST "http://127.0.0.1:8000/completions" \
   -d '{"prompt": "Diga olá em inglês.", "model": "text-davinci-003", "max_tokens": 20, "temperature": 0.5}'
 ```
 
-## 7. CORS
+## 8. Testes Automatizados
+
+Para rodar todos os testes:
+```bash
+pytest testes/
+```
+Para rodar um teste específico:
+```bash
+pytest testes/test_chat_module.py
+```
+
+## 9. CORS
 
 O backend já está configurado para aceitar requisições de diferentes origens (CORS), permitindo integração com frontends web.
 
-## 8. Documentação Detalhada
+## 10. Documentação Detalhada
 
 - [Referência da API (endpoints, exemplos, autenticação)](docs/api_reference.md)
 - [Guia de uso da CLI](docs/usage_guides/cli_guide.md)
+- [Arquitetura do sistema](docs/architecture.md)
+- [Comandos e execução](docs/commands.md)
+- [Troubleshooting e FAQ](docs/troubleshooting.md)
 
 ---
 
-Esses passos garantem que qualquer pessoa consiga rodar, autenticar e testar o backend rapidamente!
+Esses passos garantem que qualquer pessoa consiga rodar, autenticar, testar e contribuir com o projeto rapidamente!
 
 
 
