@@ -30,6 +30,19 @@ body {
   color: white;
 }
 
+@media (max-width: 600px) {
+  .App-header {
+    min-height: 60vh;
+    font-size: 1rem;
+    padding: 12px 2vw;
+  }
+  nav {
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 2vw;
+  }
+}
+
 .App-link {
   color: #61dafb;
 }

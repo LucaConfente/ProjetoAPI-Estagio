@@ -1,11 +1,49 @@
 body {
-  margin: 0; 
-  font-family: Arial, Helvetica, sans-serif; 
-  background: #f5f5f5; 
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f5f5f5;
+  color: #222;
+  font-size: 16px;
+  line-height: 1.6;
 }
 
 .layout {
-  min-height: 100vh; 
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  color: #1976d2;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+@media (max-width: 900px) {
+  body {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 600px) {
+  body {
+    font-size: 14px;
+    padding: 0;
+  }
+  .layout {
+    padding: 0 2vw;
+  }
 }
