@@ -104,3 +104,25 @@ def _configure_root_logger_from_config():
    
 
 _configure_root_logger_from_config()
+
+# -----------------------------------------------------------------------------
+#
+# Este módulo centraliza a configuração do sistema de logging do projeto,
+# garantindo logs organizados, rotativos e com diferentes níveis de detalhamento
+# para console e arquivo. Utiliza RotatingFileHandler para rotação automática dos
+# arquivos de log e permite configuração dinâmica do nível de log via Config.
+#
+# Principais pontos:
+# - Função utilitária para configurar loggers nomeados e o logger raiz.
+# - Cria diretório e arquivo de log automaticamente se não existirem.
+# - Permite logs coloridos e detalhados no console e logs completos em arquivo.
+# - Integra-se com a classe Config para ajustar o nível de log globalmente.
+# - Usa lru_cache para garantir configuração única do logger raiz.
+#
+# Uso típico:
+#   logger = configurar_logging(__name__)
+#   logger.info("Mensagem de log")
+#
+# Este arquivo é fundamental para garantir rastreabilidade, depuração e auditoria
+# das operações do sistema, facilitando o diagnóstico de problemas e o monitoramento.
+

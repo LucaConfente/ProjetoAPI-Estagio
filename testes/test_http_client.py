@@ -515,3 +515,25 @@ def test_metricas_de_uso_registram_sucesso_e_falha():
     assert metricas['ultimos_status'][0] == 200
     # Aceita tanto 500 quanto 'erro' como status de falha
     assert metricas['ultimos_status'][1] in (500, 'erro')
+
+# -----------------------------------------------------------------------------
+#
+# Este arquivo contém testes unitários para o ClienteHttpOpenAI, garantindo que
+# a comunicação com a API da OpenAI, tratamento de erros, retries, backoff,
+# rate limiting e coleta de métricas estejam funcionando corretamente.
+# Utiliza pytest, requests-mock e mocks para simular cenários reais e de falha.
+#
+# Principais pontos:
+# - Testa requisições GET e POST bem-sucedidas e com diferentes tipos de erro.
+# - Garante que exceções customizadas são lançadas para cada cenário de erro.
+# - Valida o funcionamento do retry, backoff exponencial e rate limiter.
+# - Verifica a coleta de métricas de uso do cliente HTTP.
+# - Usa fixtures para isolar e configurar o ambiente de teste.
+#
+# Uso típico:
+#   pytest testes/test_http_client.py
+#
+# Este arquivo é fundamental para garantir a robustez, resiliência e
+# rastreabilidade do cliente HTTP, prevenindo regressões e facilitando a
+# manutenção do sistema.
+

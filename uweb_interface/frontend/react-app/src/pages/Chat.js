@@ -16,37 +16,20 @@ const Chat = () => {
     setInput('');
     setLoading(true);
     try {
-      // Detecta se o usuário quer uma imagem (exemplo: começa com /img ou "desenhe" ou "gere uma imagem")
-      const isImagePrompt = /(^\/img\b|\bdesenhe\b|\bgere uma imagem\b|\bimagem de\b|\bdraw\b|\bimage of\b)/i.test(input);
-      if (isImagePrompt) {
-        // Chama o endpoint de imagem
-        const imgRes = await fetch('http://localhost:8000/image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer API_LUCA' },
-          body: JSON.stringify({ prompt: input, n: 1, size: '512x512' })
-        });
-        const imgData = await imgRes.json();
-        if (imgData.urls && imgData.urls.length > 0) {
-          setMessages((msgs) => [...msgs, { sender: 'bot', text: '', image: imgData.urls[0] }]);
-        } else {
-          setMessages((msgs) => [...msgs, { sender: 'bot', text: 'Não foi possível gerar a imagem.' }]);
-        }
-      } else {
-        // Chamada ao backend para texto
-        const body = {
-          messages: [
-            { role: 'user', content: input }
-          ],
-          model: 'gpt-3.5-turbo'
-        };
-        const res = await fetch('http://localhost:8000/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer API_LUCA' },
-          body: JSON.stringify(body)
-        });
-        const data = await res.json();
-        setMessages((msgs) => [...msgs, { sender: 'bot', text: data.response || data.message || JSON.stringify(data) || 'Erro na resposta.' }]);
-      }
+      // Chamada ao backend para texto
+      const body = {
+        messages: [
+          { role: 'user', content: input }
+        ],
+        model: 'gpt-3.5-turbo'
+      };
+      const res = await fetch('http://localhost:8000/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer API_LUCA' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      setMessages((msgs) => [...msgs, { sender: 'bot', text: data.response || data.message || JSON.stringify(data) || 'Erro na resposta.' }]);
     } catch (err) {
       setMessages((msgs) => [...msgs, { sender: 'bot', text: 'Erro ao conectar ao backend.' }]);
     }
@@ -58,11 +41,7 @@ const Chat = () => {
       <div className="chat-messages">
         {messages.map((msg, idx) => (
           <div key={idx} className={`chat-msg ${msg.sender}`}>
-            {msg.image ? (
-              <img src={msg.image} alt="Imagem gerada pela IA" style={{ maxWidth: '100%', borderRadius: 12, margin: '8px 0' }} />
-            ) : (
-              msg.text
-            )}
+            {msg.text}
           </div>
         ))}
         {loading && <div className="chat-msg bot">Carregando...</div>}
@@ -92,3 +71,17 @@ const Chat = () => {
 };
 
 export default Chat;
+
+// ----------------------------------------------------------------------------------------
+
+// Este arquivo define o componente Chat do frontend React.
+// Função principal:
+// - Permite ao usuário conversar com o modelo de IA via backend FastAPI.
+// - Usa useState para controlar mensagens, input do usuário e estado de carregamento.
+// - handleSend envia a mensagem do usuário para o backend (endpoint /chat), recebe a resposta e atualiza o histórico de mensagens.
+// - Exibe todas as mensagens (usuário e bot) em ordem, com estilização diferenciada.
+// - O botão de envio é desabilitado enquanto carrega ou se o input estiver vazio.
+// - apenas chat de texto. Tentativa de geração de imagens foi removida.
+// - O componente é totalmente controlado por estado React, garantindo atualização automática da interface.
+//
+// Este arquivo faz parte da interface web do projeto e é responsável por toda a experiência de chat com IA no frontend.

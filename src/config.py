@@ -134,3 +134,26 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Erro inesperado ao carregar as configurações: {e}")
         exit(1)
+
+# -----------------------------------------------------------------------------
+#
+# Este módulo define a classe Config, responsável por centralizar e validar as
+# configurações do projeto, especialmente as relacionadas à integração com a API
+# da OpenAI e ao sistema de logging. Utiliza Pydantic para carregar variáveis de
+# ambiente e arquivos .env, garantindo tipagem, validação e documentação das
+# configurações.
+#
+# Principais pontos:
+# - Carrega e valida variáveis de ambiente essenciais (ex: OPENAI_API_KEY).
+# - Permite configuração detalhada de logging (nível, formato, rotação de arquivos).
+# - Implementa singleton via get_instance() para garantir configuração única e cacheada.
+# - Lança exceções customizadas (OpenAIConfigurationError) em caso de erro crítico.
+# - Pode ser executado diretamente para testar o carregamento das configurações.
+#
+# Uso típico:
+#   settings = Config.get_instance()
+#   print(settings.OPENAI_API_KEY)
+#
+# Este arquivo é fundamental para o backend, pois garante que todas as partes do
+# sistema tenham acesso a configurações consistentes, seguras e validadas.
+# -----------------------------------------------------------------------------

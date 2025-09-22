@@ -174,3 +174,23 @@ def test_mock_http_error_429(requests_mock):
 
 from src.exceptions import OpenAIRetryError  # Adicione o import correto conforme o local da definição
 
+# -----------------------------------------------------------------------------
+#
+# Este arquivo contém testes unitários para comandos e para o sistema de logging
+# do projeto, utilizando pytest. Testa tanto a execução de comandos simulados
+# quanto a criação e funcionamento de arquivos de log, além de cenários de erro
+# HTTP mockados.
+#
+# Principais pontos:
+# - Testa o fluxo de sucesso e falha de comandos, verificando logs gerados.
+# - Garante que arquivos e diretórios de log são criados corretamente.
+# - Usa mocks para simular erros HTTP (ex: 429 Too Many Requests).
+# - Utiliza fixtures do pytest para capturar logs e isolar ambiente de teste.
+#
+# Uso típico:
+#   pytest testes/test_commands.py
+#
+# Este arquivo é importante para garantir que comandos e logging funcionem
+# corretamente, prevenindo regressões e facilitando a manutenção do sistema.
+
+

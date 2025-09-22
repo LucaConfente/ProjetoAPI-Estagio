@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Chat from './pages/Chat';
@@ -52,3 +51,16 @@ function App() {
 }
 
 export default App;
+
+// -------------------------------------------------------------------------------------------------
+
+// Este arquivo define o componente principal App do frontend React.
+// Funções principais:
+// - Define a navegação da aplicação usando React Router (SPA): Home, Chat e Completions.
+// - O componente Home exibe uma mensagem de boas-vindas, dicas de uso e informações do projeto.
+// - O menu de navegação permite alternar entre as páginas sem recarregar o site.
+// - Cada rota carrega um componente específico: Chat (conversa com IA) e Completions (testes de prompts).
+// - O layout e as cores são definidos com estilos inline para simplicidade e visual moderno.
+// - O App é o ponto central de toda a interface do frontend, integrando navegação, páginas e dicas.
+//
+// Este arquivo é essencial para a experiência de navegação e organização das funcionalidades do frontend React.

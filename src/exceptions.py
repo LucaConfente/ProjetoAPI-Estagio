@@ -128,3 +128,26 @@ class OpenAIValidationError(OpenAIClientError):
         self.field = field
         self.value = value
         self.expected_format = expected_format
+
+# -----------------------------------------------------------------------------
+#
+# Este módulo centraliza todas as exceções customizadas utilizadas no projeto,
+# especialmente para lidar com erros relacionados à integração com a API da OpenAI.
+# Define uma hierarquia de exceções para diferentes tipos de falhas, como erros de
+# autenticação, requisição, conexão, timeout, validação de dados e configuração.
+#
+# Principais pontos:
+# - Facilita o tratamento de erros de forma granular e semântica.
+# - Permite capturar e diferenciar falhas específicas (ex: autenticação, validação, rede).
+# - Exceções carregam detalhes adicionais para facilitar o debug e o log.
+# - Hierarquia baseada em OpenAIClientError para padronizar o tratamento.
+#
+# Uso típico:
+#   try:
+#       ...
+#   except OpenAIValidationError as e:
+#       print(e)
+#
+# Este arquivo é fundamental para garantir robustez, clareza e rastreabilidade
+# dos erros em toda a aplicação, tornando o código mais seguro e fácil de manter.
+# -----------------------------------------------------------------------------

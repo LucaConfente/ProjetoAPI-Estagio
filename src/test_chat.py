@@ -98,3 +98,22 @@ def test_chat_module_inicializacao():
         MockClienteHttpOpenAI.assert_called_once() # Verifica se ClienteHttpOpenAI foi instanciado
 
         assert chat_module.cliente_http is MockClienteHttpOpenAI.return_value
+
+# -----------------------------------------------------------------------------
+#
+# Este arquivo contém testes unitários para o módulo ChatModule, garantindo que
+# a lógica de criação de conversas, validação de parâmetros e integração com o
+# cliente HTTP estejam corretas. Utiliza pytest e unittest.mock para simular
+# dependências e cenários de erro.
+#
+# Principais pontos:
+# - Testa o fluxo de sucesso e múltiplos cenários de erro para criar_conversa.
+# - Garante que exceções de validação são lançadas para entradas inválidas.
+# - Verifica a integração com ClienteHttpOpenAI via mocks.
+# - Testa a inicialização correta do ChatModule.
+#
+# Uso típico:
+#   pytest src/test_chat.py
+#
+# Este arquivo é fundamental para garantir a robustez e a confiabilidade do
+# ChatModule, prevenindo regressões e facilitando a manutenção do código.

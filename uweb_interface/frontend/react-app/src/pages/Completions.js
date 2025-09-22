@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import './Completions.css';
 
@@ -39,11 +38,22 @@ const Completions = () => {
           required
         />
         <div className="completions-params">
-          <label>Temperature:
+          <label>Temperature:  
+            { /* Input para o parâmetro 'temperature' do completions:
+              - Permite ao usuário escolher um valor entre 0 e 2 (step 0.1), conforme limites da OpenAI.
+              - Quanto menor o valor, mais determinística e repetitiva a resposta; quanto maior, mais criativa e variada.
+              - O valor é controlado pelo estado React (params.temperature) e atualizado a cada mudança no input. */}
+              
             <input type="number" step="0.1" min="0" max="2" value={params.temperature}
               onChange={e => setParams(p => ({ ...p, temperature: parseFloat(e.target.value) }))} />
           </label>
           <label>Max tokens:
+            {/* Input para o parâmetro 'max_tokens' do completions:
+             - Permite ao usuário definir o número máximo de tokens (palavras/frases curtas) que a resposta pode ter.
+             - O valor mínimo é 1 e o máximo é 2048, conforme limites da OpenAI.
+             - Valores maiores permitem respostas mais longas; valores menores limitam a resposta.
+             - O valor é controlado pelo estado React (params.max_tokens) e atualizado a cada mudança no input. */}
+
             <input type="number" min="1" max="2048" value={params.max_tokens}
               onChange={e => setParams(p => ({ ...p, max_tokens: parseInt(e.target.value) }))} />
           </label>
@@ -58,3 +68,4 @@ const Completions = () => {
 };
 
 export default Completions;
+

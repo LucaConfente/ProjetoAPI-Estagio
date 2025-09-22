@@ -27,3 +27,26 @@ if __name__ == "__main__":
     print("Contexto atual:", ctx.get_contexto())
     ctx.limpar()
     print("Contexto após limpar:", ctx.get_contexto())
+
+# -----------------------------------------------------------------------------
+#
+# Este módulo define a classe ContextManager, responsável por gerenciar o
+# histórico de mensagens em uma conversa com o modelo de linguagem. Permite
+# adicionar novas mensagens, recuperar o contexto atual (lista de mensagens)
+# e limpar o histórico.
+#
+# Principais pontos:
+# - Mantém o contexto de conversas para interações mais naturais com o modelo.
+# - Limita o número de mensagens armazenadas (max_length) para evitar excesso de contexto.
+# - Métodos simples para adicionar, recuperar e limpar mensagens.
+# - Pode ser executado diretamente para testes rápidos do gerenciamento de contexto.
+#
+# Uso típico:
+#   ctx = ContextManager(max_length=10)
+#   ctx.adicionar_mensagem("user", "Olá!")
+#   contexto = ctx.get_contexto()
+#
+# Este arquivo é útil para aplicações que precisam manter o histórico de
+# interações do usuário com o assistente, garantindo que o modelo tenha
+# acesso ao contexto recente da conversa.
+

@@ -34,3 +34,26 @@ if __name__ == "__main__":
         print(validar_parametros_extras({"temperature": 0.7, "max_tokens": 10}))
     except Exception as e:
         print("Erro de validação:", e)
+
+# -----------------------------------------------------------------------------
+# Comentário explicativo sobre o arquivo src/validators.py
+#
+# Este módulo centraliza funções de validação para os principais parâmetros
+# utilizados nas interações com a API da OpenAI, como modelo, prompt, mensagens
+# e parâmetros extras. Garante que os dados estejam no formato correto antes de
+# serem enviados para a API, prevenindo erros e facilitando o debug.
+#
+# Principais pontos:
+# - Valida se modelo e prompt são strings não vazias.
+# - Valida se mensagens é uma lista de dicionários com 'role' e 'content'.
+# - Valida se parâmetros extras são permitidos.
+# - Lança ValueError com mensagens claras em caso de erro.
+# - Pode ser executado diretamente para testar as funções de validação.
+#
+# Uso típico:
+#   validar_modelo("gpt-3.5-turbo")
+#   validar_mensagens([...])
+#
+# Este arquivo é importante para garantir a integridade dos dados enviados à API
+# e evitar falhas por entradas malformadas, tornando o sistema mais robusto.
+# -----------------------------------------------------------------------------

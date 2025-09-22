@@ -53,3 +53,23 @@ if __name__ == "__main__":
     print("Chat:", formatar_resposta_chat(resposta_chat))
     print("Completions:", formatar_resposta_completions(resposta_compl))
     print("Contexto:\n", formatar_contexto(contexto))
+
+# ----------------------------------------------------------------------------------------------
+#
+# Este módulo centraliza funções utilitárias para formatação de respostas,
+# contexto, erros e avisos, tornando a exibição de informações mais amigável e
+# colorida no terminal. Utiliza a biblioteca colorama para aplicar cores.
+#
+# Principais pontos:
+# - Formata respostas dos endpoints chat/completions para fácil leitura.
+# - Destaca mensagens do usuário e do assistente no contexto com cores diferentes.
+# - Fornece funções para destacar erros e avisos.
+# - Pode ser executado diretamente para testar as funções de formatação.
+#
+# Uso típico:
+#   print(formatar_resposta_chat(resposta))
+#   print(formatar_contexto(mensagens))
+#
+# Este arquivo é útil para melhorar a experiência do usuário em CLIs e logs,
+# facilitando a visualização rápida de respostas, contexto e mensagens importantes.
+

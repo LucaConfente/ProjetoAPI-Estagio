@@ -1,4 +1,3 @@
-
 import sys
 import os
 from pathlib import Path
@@ -371,3 +370,17 @@ def listar_modelos(app_config: Config):
 
 if __name__ == "__main__":
     cli()
+
+# -------------------------------------------------------------------------------------------------------------
+
+# Este arquivo define a CLI principal do projeto OpenAI Integration Hub.
+# Funções principais:
+# - Permite interagir com a API da OpenAI via linha de comando, sem depender do frontend.
+# - Usa Click para criar comandos como: chat, obter, enviar, interativo, config, test_connection, listar_modelos, help.
+# - Carrega e valida configurações (chave da OpenAI, variáveis de ambiente) automaticamente.
+# - Implementa tratamento robusto de erros, logs detalhados e mensagens amigáveis para o usuário.
+# - O modo interativo permite conversar com o modelo em tempo real, salvar e carregar conversas, e visualizar histórico.
+# - Todos os comandos são documentados e podem ser acessados com --help ou pelo comando help.
+# - O arquivo serve como ponto de entrada para automação, testes e uso avançado do backend sem interface gráfica.
+#
+# Este arquivo é essencial para desenvolvedores e usuários avançados que desejam controlar e testar a integração com a OpenAI diretamente pelo terminal.

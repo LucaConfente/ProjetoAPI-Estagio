@@ -44,6 +44,7 @@ class ClienteHttpOpenAI:
         """
         headers = {"Content-Type": "application/json"}
         return self._realizar_requisicao("POST", ponto_final, json=dados, headers=headers)
+    
     def __init__(self, max_tentativas: int = 2, fator_backoff: float = 0.01, tempo_limite: int = 10, max_requisicoes_por_segundo: float = 3.0):
         """
         Inicializa o cliente HTTP para OpenAI.
@@ -248,3 +249,24 @@ class ClienteHttpOpenAI:
                 else:
                     raise last_caught_custom_exception
         raise OpenAIClientError("Erro desconhecido: A requisição falhou sem exceção capturada e sem retorno de dados.")
+
+# -----------------------------------------------------------------------------
+#
+# Este módulo implementa o ClienteHttpOpenAI, responsável por toda a comunicação
+# HTTP com a API da OpenAI. Centraliza lógica de requisições, tratamento de erros,
+# retries, backoff exponencial, rate limiting e coleta de métricas de uso.
+#
+# Principais pontos:
+# - Suporte a GET e POST para endpoints da OpenAI.
+# - Implementa retries automáticos com backoff para erros temporários (429, 5xx, timeout, conexão).
+# - Rate limiter local para evitar excesso de requisições por segundo.
+# - Tratamento detalhado de erros, lançando exceções customizadas para cada tipo de falha.
+# - Coleta métricas de uso para monitoramento.
+#
+# Uso típico:
+#   cliente = ClienteHttpOpenAI()
+#   resposta = cliente.enviar('chat/completions', dados)
+#
+# Este arquivo é fundamental para garantir robustez, resiliência e rastreabilidade
+# nas integrações com a API da OpenAI, abstraindo detalhes de rede e tratamento de falhas.
+# -----------------------------------------------------------------------------
