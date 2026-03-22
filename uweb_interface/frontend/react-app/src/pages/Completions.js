@@ -208,7 +208,7 @@ export default function Completions() {
             <input
               type="range"
               min="50"
-              max="500"
+              max="1000"
               step="10"
               value={maxTokens}
               onChange={e => setMaxTokens(parseInt(e.target.value))}
