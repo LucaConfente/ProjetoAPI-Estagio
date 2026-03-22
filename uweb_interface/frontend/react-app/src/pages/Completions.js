@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 
 const PRESETS = [
-  { label: 'Criativo', temp: 1.2, tokens: 200 },
-  { label: 'Balanceado', temp: 0.7, tokens: 150 },
-  { label: 'Preciso', temp: 0.2, tokens: 100 },
+  { label: 'Criativo', temp: 0.9, tokens: 300 },
+  { label: 'Balanceado', temp: 0.5, tokens: 200 },
+  { label: 'Preciso', temp: 0.1, tokens: 150 },
 ];
 
 export default function Completions() {
   const [prompt, setPrompt] = useState('');
-  const [temperature, setTemperature] = useState(0.7);
-  const [maxTokens, setMaxTokens] = useState(150);
+  const [temperature, setTemperature] = useState(0.5);
+  const [maxTokens, setMaxTokens] = useState(200);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -27,21 +27,25 @@ export default function Completions() {
     const start = Date.now();
 
     try {
-    const response = await fetch('http://localhost:8000/completions', {
-    method: 'POST',
-    headers: { 
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer API_LUCA',
-    },
-    body: JSON.stringify({ prompt: text, temperature, max_tokens: maxTokens }),
-  });
+      const response = await fetch('http://localhost:8000/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer API_LUCA',
+        },
+        body: JSON.stringify({
+          prompt: text,
+          temperature,
+          max_tokens: maxTokens,
+        }),
+      });
 
       if (!response.ok) throw new Error(`Erro ${response.status}`);
 
       const data = await response.json();
       const elapsed = ((Date.now() - start) / 1000).toFixed(2);
 
-      setResult(data.text || data.completion || data.response || JSON.stringify(data, null, 2));
+      setResult(data.response || data.completion || data.text || JSON.stringify(data, null, 2));
       setMeta({ elapsed, tokens: data.usage?.total_tokens });
     } catch (err) {
       setError(err.message);
@@ -62,7 +66,7 @@ export default function Completions() {
     setError(null);
   };
 
-  const tempColor = temperature <= 0.4 ? '#56cfff' : temperature <= 0.8 ? '#6e56ff' : '#f5a623';
+  const tempColor = temperature <= 0.3 ? '#56cfff' : temperature <= 0.6 ? '#6e56ff' : '#f5a623';
 
   return (
     <div style={styles.page}>
@@ -78,7 +82,6 @@ export default function Completions() {
       <div style={styles.layout}>
         {/* Left: Prompt + Output */}
         <div style={styles.main}>
-          {/* Prompt */}
           <div style={styles.section}>
             <label style={styles.label}>Prompt</label>
             <textarea
@@ -91,7 +94,6 @@ export default function Completions() {
             />
           </div>
 
-          {/* Submit */}
           <button
             onClick={send}
             disabled={!prompt.trim() || loading}
@@ -101,18 +103,12 @@ export default function Completions() {
             }}
           >
             {loading ? (
-              <>
-                <span style={styles.spinner} />
-                Gerando...
-              </>
+              <><span style={styles.spinner} />Gerando...</>
             ) : (
-              <>
-                ⚡ Enviar Prompt
-              </>
+              <>⚡ Enviar Prompt</>
             )}
           </button>
 
-          {/* Output */}
           {(result || error || loading) && (
             <div style={styles.outputSection}>
               <div style={styles.outputHeader}>
@@ -124,9 +120,7 @@ export default function Completions() {
                       {meta.elapsed}s
                     </span>
                     {meta.tokens && (
-                      <span style={styles.metaItem}>
-                        {meta.tokens} tokens
-                      </span>
+                      <span style={styles.metaItem}>{meta.tokens} tokens</span>
                     )}
                   </div>
                 )}
@@ -146,7 +140,6 @@ export default function Completions() {
                   <button
                     style={styles.copyBtn}
                     onClick={() => navigator.clipboard.writeText(result)}
-                    title="Copiar resultado"
                   >
                     ⎘ Copiar
                   </button>
@@ -155,8 +148,7 @@ export default function Completions() {
 
               {error && (
                 <div style={styles.error}>
-                  <span>⚠</span>
-                  <span>Erro: {error}</span>
+                  <span>⚠</span><span>Erro: {error}</span>
                 </div>
               )}
             </div>
@@ -188,7 +180,7 @@ export default function Completions() {
             <input
               type="range"
               min="0"
-              max="2"
+              max="1"
               step="0.1"
               value={temperature}
               onChange={e => setTemperature(parseFloat(e.target.value))}
@@ -201,7 +193,7 @@ export default function Completions() {
             <p style={styles.paramDesc}>
               {temperature <= 0.3
                 ? 'Respostas determinísticas e focadas'
-                : temperature <= 0.8
+                : temperature <= 0.6
                 ? 'Equilíbrio entre precisão e criatividade'
                 : 'Saídas mais variadas e criativas'}
             </p>
@@ -215,7 +207,7 @@ export default function Completions() {
             </div>
             <input
               type="range"
-              min="10"
+              min="50"
               max="500"
               step="10"
               value={maxTokens}
@@ -223,16 +215,19 @@ export default function Completions() {
               style={styles.slider}
             />
             <div style={styles.sliderLabels}>
-              <span>10</span>
+              <span>50</span>
               <span>500</span>
             </div>
+            <p style={styles.paramDesc}>
+              Mínimo de 50 tokens para evitar respostas cortadas no meio da frase.
+            </p>
           </div>
 
           {/* Info */}
           <div style={styles.infoCard}>
             <p style={styles.infoTitle}>ℹ Sobre Tokens</p>
             <p style={styles.infoText}>
-              ~1 token ≈ 4 caracteres em inglês. Um parágrafo típico usa 100–200 tokens.
+              ~1 token ≈ 4 caracteres. Use pelo menos 150 tokens para respostas completas.
             </p>
           </div>
         </aside>
@@ -242,283 +237,42 @@ export default function Completions() {
 }
 
 const styles = {
-  page: {
-    maxWidth: '1000px',
-    margin: '0 auto',
-    padding: '2rem 1.5rem 4rem',
-    animation: 'fadeUp 0.5s ease',
-  },
-
-  header: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: '2rem',
-  },
-  title: {
-    fontSize: '1.4rem',
-    fontWeight: 700,
-    letterSpacing: '-0.02em',
-    color: 'var(--text)',
-    marginBottom: '0.3rem',
-  },
-  subtitle: {
-    fontSize: '0.82rem',
-    color: 'var(--text-muted)',
-  },
-  clearBtn: {
-    padding: '0.4rem 0.8rem',
-    borderRadius: '8px',
-    background: 'transparent',
-    border: '1px solid var(--border)',
-    color: 'var(--text-muted)',
-    fontSize: '0.78rem',
-    cursor: 'pointer',
-    fontFamily: 'var(--font)',
-    transition: 'all 0.2s',
-  },
-
-  layout: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 260px',
-    gap: '1.5rem',
-    alignItems: 'start',
-  },
+  page: { maxWidth: '1000px', margin: '0 auto', padding: '2rem 1.5rem 4rem', animation: 'fadeUp 0.5s ease' },
+  header: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '2rem' },
+  title: { fontSize: '1.4rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text)', marginBottom: '0.3rem' },
+  subtitle: { fontSize: '0.82rem', color: 'var(--text-muted)' },
+  clearBtn: { padding: '0.4rem 0.8rem', borderRadius: '8px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'var(--font)' },
+  layout: { display: 'grid', gridTemplateColumns: '1fr 260px', gap: '1.5rem', alignItems: 'start' },
   main: { display: 'flex', flexDirection: 'column', gap: '1rem' },
   sidebar: { display: 'flex', flexDirection: 'column', gap: '0.75rem' },
-
   section: {},
-  label: {
-    display: 'block',
-    fontSize: '0.72rem',
-    fontFamily: 'var(--mono)',
-    color: 'var(--text-muted)',
-    letterSpacing: '0.07em',
-    textTransform: 'uppercase',
-    marginBottom: '0.6rem',
-  },
-
-  textarea: {
-    width: '100%',
-    padding: '1rem',
-    borderRadius: '12px',
-    background: 'var(--card)',
-    border: '1px solid var(--border)',
-    color: 'var(--text)',
-    fontSize: '0.88rem',
-    fontFamily: 'var(--font)',
-    resize: 'vertical',
-    outline: 'none',
-    lineHeight: 1.65,
-    transition: 'border-color 0.2s',
-    caretColor: 'var(--accent)',
-    minHeight: '140px',
-  },
-
-  sendBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem',
-    width: '100%',
-    padding: '0.8rem',
-    borderRadius: '12px',
-    border: 'none',
-    fontSize: '0.88rem',
-    fontWeight: 600,
-    fontFamily: 'var(--font)',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-    letterSpacing: '0.01em',
-  },
-  sendBtnActive: {
-    background: 'var(--accent)',
-    color: '#fff',
-    boxShadow: '0 4px 20px rgba(110,86,255,0.35)',
-  },
-  sendBtnDisabled: {
-    background: 'rgba(255,255,255,0.04)',
-    color: 'var(--text-muted)',
-    cursor: 'not-allowed',
-  },
-
-  outputSection: {
-    borderRadius: '12px',
-    background: 'var(--card)',
-    border: '1px solid var(--border)',
-    overflow: 'hidden',
-  },
-  outputHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0.75rem 1rem',
-    borderBottom: '1px solid var(--border)',
-  },
-  metaRow: {
-    display: 'flex',
-    gap: '0.75rem',
-  },
-  metaItem: {
-    fontSize: '0.7rem',
-    fontFamily: 'var(--mono)',
-    color: 'var(--text-muted)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.3rem',
-  },
-  metaDot: {
-    display: 'inline-block',
-    width: '5px', height: '5px',
-    borderRadius: '50%',
-    background: 'var(--green)',
-  },
-
-  loadingOutput: {
-    padding: '1rem',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.5rem',
-  },
-  shimmer: {
-    height: '14px',
-    borderRadius: '4px',
-    background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%)',
-    backgroundSize: '200% 100%',
-    animation: 'shimmer 1.5s infinite',
-    width: '100%',
-  },
-
-  output: {
-    position: 'relative',
-    padding: '1rem',
-  },
-  outputText: {
-    fontFamily: 'var(--mono)',
-    fontSize: '0.82rem',
-    color: 'var(--text)',
-    whiteSpace: 'pre-wrap',
-    wordBreak: 'break-word',
-    lineHeight: 1.7,
-  },
-  copyBtn: {
-    marginTop: '0.75rem',
-    padding: '0.35rem 0.7rem',
-    borderRadius: '6px',
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid var(--border)',
-    color: 'var(--text-secondary)',
-    fontSize: '0.72rem',
-    fontFamily: 'var(--font)',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  },
-
-  error: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    padding: '1rem',
-    color: '#f87171',
-    fontSize: '0.82rem',
-  },
-
-  // Sidebar
-  sideSection: {
-    padding: '1rem',
-    borderRadius: '12px',
-    background: 'var(--card)',
-    border: '1px solid var(--border)',
-  },
-  sideLabel: {
-    display: 'block',
-    fontSize: '0.68rem',
-    fontFamily: 'var(--mono)',
-    color: 'var(--text-muted)',
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
-    marginBottom: '0.6rem',
-  },
-
-  presets: {
-    display: 'flex',
-    gap: '0.4rem',
-    flexWrap: 'wrap',
-  },
-  presetBtn: {
-    padding: '0.3rem 0.7rem',
-    borderRadius: '6px',
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid var(--border)',
-    color: 'var(--text-secondary)',
-    fontSize: '0.75rem',
-    fontFamily: 'var(--font)',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  },
-
-  paramHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '0.6rem',
-  },
-  paramValue: {
-    fontFamily: 'var(--mono)',
-    fontSize: '0.9rem',
-    fontWeight: 600,
-  },
-  slider: {
-    width: '100%',
-    appearance: 'none',
-    WebkitAppearance: 'none',
-    height: '3px',
-    borderRadius: '99px',
-    background: 'rgba(255,255,255,0.08)',
-    outline: 'none',
-    cursor: 'pointer',
-    accentColor: 'var(--accent)',
-  },
-  sliderLabels: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginTop: '0.35rem',
-    fontSize: '0.65rem',
-    color: 'var(--text-muted)',
-    fontFamily: 'var(--mono)',
-  },
-  paramDesc: {
-    marginTop: '0.6rem',
-    fontSize: '0.74rem',
-    color: 'var(--text-muted)',
-    lineHeight: 1.5,
-  },
-
-  infoCard: {
-    padding: '0.9rem',
-    borderRadius: '10px',
-    background: 'rgba(86,207,255,0.04)',
-    border: '1px solid rgba(86,207,255,0.1)',
-  },
-  infoTitle: {
-    fontSize: '0.75rem',
-    fontWeight: 600,
-    color: 'var(--accent2)',
-    marginBottom: '0.35rem',
-  },
-  infoText: {
-    fontSize: '0.73rem',
-    color: 'var(--text-muted)',
-    lineHeight: 1.55,
-  },
-
-  spinner: {
-    display: 'inline-block',
-    width: '13px',
-    height: '13px',
-    border: '2px solid rgba(255,255,255,0.2)',
-    borderTopColor: '#fff',
-    borderRadius: '50%',
-    animation: 'spin 0.7s linear infinite',
-  },
+  label: { display: 'block', fontSize: '0.72rem', fontFamily: 'var(--mono)', color: 'var(--text-muted)', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: '0.6rem' },
+  textarea: { width: '100%', padding: '1rem', borderRadius: '12px', background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.88rem', fontFamily: 'var(--font)', resize: 'vertical', outline: 'none', lineHeight: 1.65, caretColor: 'var(--accent)', minHeight: '140px' },
+  sendBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%', padding: '0.8rem', borderRadius: '12px', border: 'none', fontSize: '0.88rem', fontWeight: 600, fontFamily: 'var(--font)', cursor: 'pointer', transition: 'all 0.2s' },
+  sendBtnActive: { background: 'var(--accent)', color: '#fff', boxShadow: '0 4px 20px rgba(110,86,255,0.35)' },
+  sendBtnDisabled: { background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', cursor: 'not-allowed' },
+  outputSection: { borderRadius: '12px', background: 'var(--card)', border: '1px solid var(--border)', overflow: 'hidden' },
+  outputHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)' },
+  metaRow: { display: 'flex', gap: '0.75rem' },
+  metaItem: { fontSize: '0.7rem', fontFamily: 'var(--mono)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' },
+  metaDot: { display: 'inline-block', width: '5px', height: '5px', borderRadius: '50%', background: 'var(--green)' },
+  loadingOutput: { padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' },
+  shimmer: { height: '14px', borderRadius: '4px', background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite', width: '100%' },
+  output: { position: 'relative', padding: '1rem' },
+  outputText: { fontFamily: 'var(--mono)', fontSize: '0.82rem', color: 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.7 },
+  copyBtn: { marginTop: '0.75rem', padding: '0.35rem 0.7rem', borderRadius: '6px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: '0.72rem', fontFamily: 'var(--font)', cursor: 'pointer' },
+  error: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem', color: '#f87171', fontSize: '0.82rem' },
+  sideSection: { padding: '1rem', borderRadius: '12px', background: 'var(--card)', border: '1px solid var(--border)' },
+  sideLabel: { display: 'block', fontSize: '0.68rem', fontFamily: 'var(--mono)', color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.6rem' },
+  presets: { display: 'flex', gap: '0.4rem', flexWrap: 'wrap' },
+  presetBtn: { padding: '0.3rem 0.7rem', borderRadius: '6px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: '0.75rem', fontFamily: 'var(--font)', cursor: 'pointer' },
+  paramHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' },
+  paramValue: { fontFamily: 'var(--mono)', fontSize: '0.9rem', fontWeight: 600 },
+  slider: { width: '100%', appearance: 'none', WebkitAppearance: 'none', height: '3px', borderRadius: '99px', background: 'rgba(255,255,255,0.08)', outline: 'none', cursor: 'pointer', accentColor: 'var(--accent)' },
+  sliderLabels: { display: 'flex', justifyContent: 'space-between', marginTop: '0.35rem', fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'var(--mono)' },
+  paramDesc: { marginTop: '0.6rem', fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: 1.5 },
+  infoCard: { padding: '0.9rem', borderRadius: '10px', background: 'rgba(86,207,255,0.04)', border: '1px solid rgba(86,207,255,0.1)' },
+  infoTitle: { fontSize: '0.75rem', fontWeight: 600, color: 'var(--accent2)', marginBottom: '0.35rem' },
+  infoText: { fontSize: '0.73rem', color: 'var(--text-muted)', lineHeight: 1.55 },
+  spinner: { display: 'inline-block', width: '13px', height: '13px', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' },
 };
