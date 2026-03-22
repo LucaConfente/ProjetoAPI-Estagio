@@ -29,6 +29,7 @@ if __name__ == "__main__":
     except Exception as e:
         print("Erro ao criar conversa:", e)
 
+
 # -------------------------------------------------------------------------------------------------
 #
 # Este módulo define a classe ChatModule, responsável por intermediar a criação
