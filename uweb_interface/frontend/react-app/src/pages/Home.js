@@ -5,7 +5,7 @@ const cards = [
   {
     icon: '◈',
     title: 'Chat',
-    badge: 'GPT-3.5-turbo',
+    badge: 'GPT-4o',
     badgeColor: 'accent',
     description: 'Converse com um assistente virtual inteligente em tempo real. Suporte a histórico de mensagens e contexto de conversa.',
     path: '/chat',
@@ -25,7 +25,7 @@ const cards = [
 ];
 
 const stats = [
-  { label: 'Modelo', value: 'GPT-3.5', mono: true },
+  { label: 'Modelo', value: 'GPT-4o', mono: true },
   { label: 'Latência', value: '~800ms', mono: true },
   { label: 'Status', value: 'Online', green: true },
 ];

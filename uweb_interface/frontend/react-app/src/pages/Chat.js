@@ -4,7 +4,7 @@ const INITIAL_MESSAGES = [
   {
     id: 0,
     role: 'assistant',
-    content: 'Olá! Sou seu assistente virtual. Posso analisar imagens, PDFs e arquivos de texto. Como posso ajudar?',
+    content: 'Olá! Sou seu assistente virtual. Como posso ajudar?',
     time: formatTime(new Date()),
   },
 ];
@@ -13,12 +13,18 @@ function formatTime(date) {
   return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
-const ACCEPTED_FILES = '.jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.csv';
+const ACCEPTED_FILES = '.jpg,.jpeg,.png,.gif,.webp,.txt,.csv';
+
+const ALLOWED_TYPES = [
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+  'text/plain', 'text/csv',
+];
+
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
 function getFileIcon(type) {
   if (IMAGE_TYPES.includes(type)) return '🖼';
-  if (type === 'application/pdf') return '📄';
+  if (type === 'text/csv') return '📊';
   return '📝';
 }
 
@@ -44,13 +50,21 @@ export default function Chat() {
   }, [messages, loading]);
 
   const handleFiles = (newFiles) => {
-    const arr = Array.from(newFiles).map(f => ({
-      file: f,
-      name: f.name,
-      type: f.type,
-      size: f.size,
-      id: Date.now() + Math.random(),
-    }));
+    const arr = Array.from(newFiles)
+      .filter(f => {
+        if (!ALLOWED_TYPES.includes(f.type)) {
+          alert(`Formato não suportado: ${f.name}\nFormatos aceitos: imagens (jpg, png, gif, webp), txt e csv.`);
+          return false;
+        }
+        return true;
+      })
+      .map(f => ({
+        file: f,
+        name: f.name,
+        type: f.type,
+        size: f.size,
+        id: Date.now() + Math.random(),
+      }));
     setFiles(prev => [...prev, ...arr]);
   };
 
@@ -157,7 +171,7 @@ export default function Chat() {
         <div>
           <h1 style={styles.title}>Chat</h1>
           <p style={styles.subtitle}>
-            <span style={styles.modelBadge}>GPT-4 Vision</span>
+            <span style={styles.modelBadge}>GPT-4o</span>
             {messages.length - 1} mensagem{messages.length !== 2 ? 's' : ''}
           </p>
         </div>
@@ -237,7 +251,7 @@ export default function Chat() {
             {loading ? <LoadingSpinner /> : '↑'}
           </button>
         </div>
-        <p style={styles.hint}>Shift+Enter para nova linha · Arraste arquivos para o chat</p>
+        <p style={styles.hint}>Shift+Enter para nova linha · Arraste imagens, .txt ou .csv</p>
       </div>
     </div>
   );
