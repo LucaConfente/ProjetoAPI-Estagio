@@ -1,115 +1,249 @@
-# Referência da API
+# 📡 Referência da API
 
-## ClienteHttpOpenAI
-Implementa um cliente HTTP para a API OpenAI, com suporte a:
-- Requisições GET e POST
-- Lógica de retry com backoff exponencial
-- Tratamento de erros customizados (400, 401, 403, 404, 429, 500, timeout, conexão)
-- Métricas de uso
-- Rate limiter local
+> Documentação completa dos endpoints REST e do cliente HTTP interno para integração com a OpenAI.
 
-### Principais métodos
-- `obter(ponto_final, params=None)`: Realiza requisição GET.
-- `enviar(ponto_final, dados=None)`: Realiza requisição POST.
-- `_realizar_requisicao(metodo, ponto_final, **kwargs)`: Lógica central de requisição, retry e tratamento de erros.
-- `get_metricas()`: Retorna métricas de uso.
+---
 
-### Exceções customizadas
-- `OpenAIAuthenticationError`, `OpenAIBadRequestError`, `OpenAINotFoundError`, `OpenAIRateLimitError`, `OpenAIServerError`, `OpenAIClientError`, `OpenAITimeoutError`, `OpenAIConnectionError`, `OpenAIRetryError`.
+## 🔐 Autenticação
 
-### Configuração
-- Utiliza a classe singleton `Config` para parâmetros como chave API, URL base, timeout, retries e backoff.
+Todos os endpoints (exceto `/` e `/health`) exigem **Bearer Token** no header:
 
-### Testes
-- Testes automatizados em `testes/test_http_client.py` cobrem todos os cenários de erro, sucesso, retry e métricas.
-
-# Referência da API
-
-## Visão Geral
-A biblioteca fornece integração direta via HTTP com a API da OpenAI, sem dependências de SDKs oficiais. Inclui tratamento avançado de erros, lógica de retry, rate limiter e métricas de uso.
-
-## Principais Classes
-### ClienteHttpOpenAI
-- Cliente central para requisições à OpenAI.
-- Suporte a GET, POST, retries, backoff exponencial, rate limiting e métricas.
-
-#### Métodos
-- `obter(ponto_final, params=None)`: Requisição GET para o endpoint.
-- `enviar(ponto_final, dados=None)`: Requisição POST para o endpoint.
-- `_realizar_requisicao(metodo, ponto_final, **kwargs)`: Lógica central de requisição, retry e tratamento de erros.
-- `get_metricas()`: Retorna métricas de uso (total, sucesso, falha, tempo, status).
-
-#### Exemplo de Uso
-```python
-from src.http_client import ClienteHttpOpenAI
-cliente = ClienteHttpOpenAI()
-resposta = cliente.obter('models')
-print(resposta)
-```
-
-# Endpoints REST da API (FastAPI)
-
-## Autenticação
-Todos os endpoints (exceto `/` e `/health`) exigem Bearer Token:
-
-```
+```http
 Authorization: Bearer <API_AUTH_TOKEN>
 ```
 
-## Endpoints
+Configure o token via variável de ambiente:
+```bash
+$env:API_AUTH_TOKEN="API_LUCA"   # PowerShell
+export API_AUTH_TOKEN="API_LUCA"  # Linux/Mac
+```
 
-### GET /
-Mensagem de status da API (confirma que está rodando).
+---
 
-### GET /health
-Verifica se a API está funcionando (retorna `{ "status": "ok" }`).
+## 🌐 Endpoints REST (FastAPI)
 
-### GET /models
-Lista os modelos disponíveis na sua conta OpenAI.
-**Requer autenticação.**
+### `GET /`
+Confirma que a API está no ar.
+```json
+{ "message": "API rodando! Veja /docs para documentação." }
+```
 
-### GET /config
-Retorna a configuração atual da API (ex: variáveis de ambiente carregadas).
-**Requer autenticação.**
+---
 
-### POST /completions
-Gera texto a partir de um prompt usando modelos do tipo "completion" (se disponíveis).
-**Requer autenticação.**
+### `GET /health`
+Verifica o status da API.
+```json
+{ "status": "ok" }
+```
 
-Exemplo de corpo:
+---
+
+### `GET /auth-check` 🔒
+Valida se o token de autenticação está correto.
+```json
+{ "detail": "Autorização concedida!" }
+```
+
+---
+
+### `GET /models` 🔒
+Lista todos os modelos disponíveis na conta OpenAI.
+
+**Resposta:**
 ```json
 {
-  "prompt": "Diga olá em inglês.",
-  "model": "text-davinci-003",
-  "max_tokens": 20,
-  "temperature": 0.5
+  "models": ["gpt-4o", "gpt-3.5-turbo", "gpt-3.5-turbo-instruct", "..."]
 }
 ```
 
-### POST /chat
-Envia mensagens para o modelo de chat (ex: gpt-3.5-turbo, gpt-4) e recebe respostas reais.
-**Requer autenticação.**
+---
 
-Exemplo de corpo:
+### `GET /config` 🔒
+Retorna a configuração atual carregada pelo sistema.
+
+**Resposta:**
+```json
+{
+  "config": {
+    "api_url": "https://api.openai.com/v1",
+    "timeout": 30,
+    "max_retries": 3
+  }
+}
+```
+
+---
+
+### `POST /chat` 🔒
+Envia mensagens para o modelo de chat e recebe respostas. Suporta envio de imagens e arquivos de texto.
+
+**Body:**
 ```json
 {
   "messages": [
     { "role": "user", "content": "Explique buracos negros." }
   ],
-  "model": "gpt-3.5-turbo"
+  "model": "gpt-4o",
+  "files": []
 }
 ```
 
-### GET /docs
-Interface Swagger interativa para testar e visualizar todos os endpoints.
+**Body com imagem:**
+```json
+{
+  "messages": [
+    { "role": "user", "content": "O que tem nessa imagem?" }
+  ],
+  "model": "gpt-4o",
+  "files": [
+    {
+      "type": "image",
+      "name": "foto.jpg",
+      "mime": "image/jpeg",
+      "data": "<base64>"
+    }
+  ]
+}
+```
 
-### GET /auth-check
-Retorna `{ "detail": "Autorização concedida!" }` se o token estiver correto.
-**Requer autenticação.**
+**Body com arquivo de texto:**
+```json
+{
+  "messages": [
+    { "role": "user", "content": "Analise esse arquivo." }
+  ],
+  "model": "gpt-4o",
+  "files": [
+    {
+      "type": "text",
+      "name": "dados.csv",
+      "mime": "text/csv",
+      "data": "coluna1,coluna2\nvalor1,valor2"
+    }
+  ]
+}
+```
 
-## CORS
-O backend está configurado para aceitar requisições de diferentes origens (CORS), permitindo integração com frontends web.
+**Resposta:**
+```json
+{ "response": "Buracos negros são regiões do espaço-tempo onde..." }
+```
 
-## Observações
-- Todos os endpoints retornam erros claros em caso de autenticação inválida ou falta de parâmetros.
-- Para produção, ajuste `allow_origins` no CORS para maior segurança.
+---
+
+### `POST /completions` 🔒
+Gera texto a partir de um prompt usando modelos do tipo instruct.
+
+**Body:**
+```json
+{
+  "prompt": "Escreva uma introdução sobre inteligência artificial:",
+  "model": "gpt-3.5-turbo-instruct",
+  "max_tokens": 200,
+  "temperature": 0.5
+}
+```
+
+**Resposta:**
+```json
+{ "response": "A inteligência artificial é uma área da ciência da computação que..." }
+```
+
+> ⚠️ Temperatura recomendada: entre **0.1 e 0.9**. Valores acima de 1.0 podem gerar respostas incoerentes.
+
+---
+
+### `GET /docs`
+Interface **Swagger UI** para testar e visualizar todos os endpoints interativamente.
+Acesse em: `http://localhost:8000/docs`
+
+---
+
+## 🔧 Cliente HTTP Interno — `ClienteHttpOpenAI`
+
+Implementação própria de cliente HTTP para a API da OpenAI, **sem dependência de SDKs oficiais**.
+
+### Funcionalidades
+- Requisições `GET` e `POST`
+- Retry automático com **backoff exponencial**
+- Rate limiter local
+- Tratamento de erros customizados por código HTTP
+- Métricas de uso
+
+### Métodos Principais
+
+| Método | Descrição |
+|---|---|
+| `obter(ponto_final, params=None)` | Requisição GET para o endpoint |
+| `enviar(ponto_final, dados=None)` | Requisição POST para o endpoint |
+| `get_metricas()` | Retorna métricas de uso acumuladas |
+| `_realizar_requisicao(...)` | Lógica central de retry e tratamento de erros |
+
+### Exemplo de Uso
+
+```python
+from src.http_client import ClienteHttpOpenAI
+
+cliente = ClienteHttpOpenAI()
+
+# Listar modelos
+modelos = cliente.obter('models')
+print(modelos)
+
+# Enviar chat
+resposta = cliente.enviar('chat/completions', dados={
+    "model": "gpt-4o",
+    "messages": [{"role": "user", "content": "Olá!"}]
+})
+print(resposta)
+```
+
+### Métricas
+
+```python
+metricas = cliente.get_metricas()
+# {
+#   "total_requisicoes": 10,
+#   "sucesso": 9,
+#   "falha": 1,
+#   "tempo_medio_ms": 430,
+#   "status_codes": { "200": 9, "429": 1 }
+# }
+```
+
+---
+
+## ⚠️ Exceções Customizadas
+
+| Exceção | Código HTTP | Causa |
+|---|---|---|
+| `OpenAIAuthenticationError` | 401 | Token da OpenAI inválido ou ausente |
+| `OpenAIBadRequestError` | 400 | Parâmetros inválidos na requisição |
+| `OpenAINotFoundError` | 404 | Modelo ou endpoint não encontrado |
+| `OpenAIRateLimitError` | 429 | Limite de requisições atingido |
+| `OpenAIServerError` | 500 | Erro interno na OpenAI |
+| `OpenAITimeoutError` | — | Requisição excedeu o tempo limite |
+| `OpenAIConnectionError` | — | Falha de conexão com a API |
+| `OpenAIRetryError` | — | Todas as tentativas de retry falharam |
+
+---
+
+## 🔄 CORS
+
+O backend aceita requisições de qualquer origem (`*`). Para produção, restrinja em `app.py`:
+
+```python
+allow_origins=["https://seu-dominio.com"]
+```
+
+---
+
+## 📌 Observações
+
+- O endpoint `/chat` não exige autenticação Bearer por padrão (configurável em `app.py`)
+- Todos os outros endpoints retornam `401 Unauthorized` com token inválido
+- A documentação Swagger em `/docs` permite testar endpoints com autenticação integrada
+
+---
+
+*Veja também: [`architecture.md`](./architecture.md) · [`commands.md`](./commands.md) · [`troubleshooting.md`](./troubleshooting.md)*
