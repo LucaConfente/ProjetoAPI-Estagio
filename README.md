@@ -110,7 +110,7 @@ O backend já está configurado para aceitar requisições de diferentes origens
 
 ---
 
-Esses passos garantem que qualquer pessoa consiga rodar, autenticar, testar e contribuir com o projeto rapidamente!
+Esses passos garantem que qualquer pessoa consiga rodar, autenticar, testar e contribuir com o projeto rapidamente.
 
 
 
