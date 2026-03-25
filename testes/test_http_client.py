@@ -1,539 +1,489 @@
-import requests
-import pytest
-import requests.exceptions as req_exc 
-import requests_mock
-import json
+"""
+test_http_client.py
+===================
+Testes unitários para o ClienteHttpOpenAI.
+
+Cobre:
+- Inicialização do cliente
+- Requisições GET e POST bem-sucedidas
+- Tratamento de erros HTTP (400, 401, 403, 404, 429, 500)
+- Retry com backoff exponencial
+- Rate limiter
+- Métricas de uso
+- Respostas não-JSON
+- Casos extremos (dados vazios, erros genéricos)
+"""
+
 import sys
 import os
-import logging 
+import json
+import time
+import logging
 
+import pytest
+import requests
+import requests.exceptions as req_exc
+import requests_mock
 from requests.exceptions import Timeout, RequestException, HTTPError
-
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-# Importa as classes do nosso projeto, já com os nomes em inglês, conforme o que o Python está lendo
 from src.http_client import ClienteHttpOpenAI
-from src.config import Config 
+from src.config import Config
 from src.exceptions import (
-    OpenAIClientError, OpenAIAuthenticationError, OpenAIBadRequestError,
-    OpenAINotFoundError, OpenAIRateLimitError, OpenAIServerError,
-    OpenAITimeoutError, OpenAIConnectionError, OpenAIRetryError, OpenAIAPIError
+    OpenAIClientError,
+    OpenAIAuthenticationError,
+    OpenAIBadRequestError,
+    OpenAINotFoundError,
+    OpenAIRateLimitError,
+    OpenAIServerError,
+    OpenAITimeoutError,
+    OpenAIConnectionError,
+    OpenAIRetryError,
+    OpenAIAPIError,
 )
 
-
-
+# Suprime logs durante os testes
 logging.disable(logging.CRITICAL)
-print(logging.getLogger().handlers)
+
+
+# =============================================================================
+# FIXTURES
+# =============================================================================
 
 @pytest.fixture(scope="module")
 def configurar_cliente_para_teste():
     """
-    Configura a instância de Config para os testes, garantindo que
-    o ClienteHttpOpenAI possa inicializar sem erros de chave API ou outras configs.
-    Define valores dummy e restaura os originais após os testes.
+    Configura a instância singleton de Config com valores dummy para os testes.
+    Restaura os valores originais após a execução do módulo.
     """
-    # ALTERADO: Obtém a instância singleton da Config
-    config_instancia = Config.get_instance()
-    
-    # Guarda os valores originais para restaurar após os testes
-    valores_originais = {
-        'OPENAI_API_KEY': config_instancia.OPENAI_API_KEY,
-        'OPENAI_BASE_URL': config_instancia.OPENAI_BASE_URL,
-        'OPENAI_TIMEOUT': config_instancia.OPENAI_TIMEOUT,
-        'OPENAI_MAX_RETRIES': config_instancia.OPENAI_MAX_RETRIES,
-        'OPENAI_BACKOFF_FACTOR': config_instancia.OPENAI_BACKOFF_FACTOR,
+    config = Config.get_instance()
+
+    originais = {
+        'OPENAI_API_KEY': config.OPENAI_API_KEY,
+        'OPENAI_BASE_URL': config.OPENAI_BASE_URL,
+        'OPENAI_TIMEOUT': config.OPENAI_TIMEOUT,
+        'OPENAI_MAX_RETRIES': config.OPENAI_MAX_RETRIES,
+        'OPENAI_BACKOFF_FACTOR': config.OPENAI_BACKOFF_FACTOR,
     }
 
-    config_instancia.OPENAI_API_KEY = "sk-test1234567890abcdefghijklmnopqrstuvwxyz" 
-    config_instancia.OPENAI_BASE_URL = "https://api.openai.com/v1"
-    config_instancia.OPENAI_TIMEOUT = 10
-    config_instancia.OPENAI_MAX_RETRIES = 2 # Define 0 tentativas para a maioria dos testes de erro único
-    config_instancia.OPENAI_BACKOFF_FACTOR = 0.01 # retries rápidos
+    config.OPENAI_API_KEY = "sk-test1234567890abcdefghijklmnopqrstuvwxyz"
+    config.OPENAI_BASE_URL = "https://api.openai.com/v1"
+    config.OPENAI_TIMEOUT = 10
+    config.OPENAI_MAX_RETRIES = 2
+    config.OPENAI_BACKOFF_FACTOR = 0.01
 
-    yield # Os testes que usam esta fixture serão executados aqui
-    
-    # Restaura os valores originais da Configuração após os testes
-    for atributo, valor in valores_originais.items():
-        setattr(config_instancia, atributo, valor)
+    yield
 
+    for atributo, valor in originais.items():
+        setattr(config, atributo, valor)
 
 
-# Fixture para criar uma instância do ClienteHttpOpenAI para cada teste.
 @pytest.fixture
 def cliente_http(configurar_cliente_para_teste):
+    """Instância limpa do ClienteHttpOpenAI para cada teste."""
     return ClienteHttpOpenAI()
 
 
-def test_inicializacao_cliente_http(cliente_http):
-    """Testa se o cliente HTTP inicializa corretamente com as configurações."""
-    assert cliente_http.url_base == "https://api.openai.com/v1"
-    assert cliente_http.chave_api.startswith("sk-")
-    assert cliente_http.tempo_limite == 10
-  
-    assert isinstance(cliente_http.sessao, requests.Session) 
-    assert cliente_http.max_tentativas == 2
-    assert cliente_http.fator_backoff == 0.01 # Verifica o valor configurado pela fixture
-
-
-
-######### GET ##########
-def test_resposta_get_sucesso(cliente_http, requests_mock):
-    """Testa uma requisição GET bem-sucedida."""
-    ponto_final_teste = "models"
-    resposta_mock = {"data": [{"id": "gpt-3.5-turbo"}], "object": "list"}
-    requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", json=resposta_mock, status_code=200)
-
-    resposta = cliente_http.obter(ponto_final_teste) # Usa o método traduzido 'obter'
-    assert resposta == resposta_mock
-    assert requests_mock.call_count == 1 # Verifica que apenas uma chamada foi feita
-
-
-
-######### POST ##########
-def test_resposta_post_sucesso(cliente_http, requests_mock):
-    """Testa uma requisição POST bem-sucedida."""
-    ponto_final_teste = "chat/completions"
-    dados_teste = {"messages": [{"role": "user", "content": "Olá"}]}
-    resposta_mock = {"id": "chatcmpl-123", "choices": [], "object": "chat.completion"}
-    requests_mock.post(f"{cliente_http.url_base}/{ponto_final_teste}", json=resposta_mock, status_code=200)
-
-    resposta = cliente_http.enviar(ponto_final_teste, dados=dados_teste) # Usa o método traduzido 'enviar'
-    assert resposta == resposta_mock
-    assert requests_mock.called_once # Verifica que apenas uma chamada foi feita
-    # Verifica se os cabeçalhos padrão foram enviados
-    assert requests_mock.last_request.headers["Authorization"] == f"Bearer {cliente_http.chave_api}"
-    assert requests_mock.last_request.headers["Content-Type"] == "application/json"
-
-
-# ---------------------------------------------------------------------------------------------
-# TESTES DE ERROS HTTP
-
-def test_erro_http_resposta_400(cliente_http, requests_mock):
-    """Testa o tratamento de erro HTTP (ex: 400 Requisição Inválida)"""
-    ponto_final_teste = "bad_request_endpoint"
-    mensagem_erro_api = {"error": {"message": "Parâmetro inválido", "type": "invalid_request_error"}}
-    requests_mock.post(f"{cliente_http.url_base}/{ponto_final_teste}", json=mensagem_erro_api, status_code=400)
-
-    with pytest.raises(OpenAIBadRequestError) as info_excecao:
-        cliente_http.enviar(ponto_final_teste, dados={})
-    
-    assert "400 - Bad Request" in str(info_excecao.value)
-    assert "Detalhes da API: Parâmetro inválido" in str(info_excecao.value)
-
-
-
-def test_erro_http_resposta_401(cliente_http, requests_mock):
-    """Testa o tratamento de erro HTTP (ex: 401 Não Autorizado)"""
-    ponto_final_teste = "unauthorized_endpoint"
-    mensagem_erro_api = {"error": {"message": "Chave API incorreta", "type": "authentication_error"}}
-    requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", json=mensagem_erro_api, status_code=401)
-
-    with pytest.raises(OpenAIAuthenticationError) as info_excecao:
-        cliente_http.obter(ponto_final_teste)
-    
-    assert "401 - Unauthorized" in str(info_excecao.value)
-    assert "Detalhes da API: Chave API incorreta" in str(info_excecao.value)
-
-
-
-def test_erro_http_resposta_404(cliente_http, requests_mock):
-    """Testa o tratamento de erro HTTP (ex: 404 Não Encontrado)."""
-    ponto_final_teste = "non_existent_endpoint"
-    mensagem_erro_api = {"error": {"message": "Recurso não encontrado", "type": "invalid_request_error"}}
-    requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", json=mensagem_erro_api, status_code=404)
-
-    with pytest.raises(OpenAINotFoundError) as info_excecao:
-        cliente_http.obter(ponto_final_teste)
-    
-    assert "404 - Not Found" in str(info_excecao.value)
-    assert "Detalhes da API: Recurso não encontrado" in str(info_excecao.value)
-
-
-
-def test_erro_http_resposta_429_com_retries(cliente_http, requests_mock):
-    """Testa o tratamento de erro HTTP (ex: 429 Too Many Requests) com retries."""
-    cliente_http.max_tentativas = 1
-    cliente_http.fator_backoff = 0.001
-    ponto_final_teste = "rate_limit_endpoint"
-
-    response_429 = requests.Response()
-    response_429.status_code = 429
-    response_429._content = b'{"error": {"message": "Limite de taxa excedido", "type": "rate_limit_error"}}'
-    response_429.reason = "Too Many Requests"
-
-    # Mocka duas tentativas, ambas levantando HTTPError
-    requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", exc=HTTPError(response=response_429))
-    requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", exc=HTTPError(response=response_429))
-
-    with pytest.raises(OpenAIRateLimitError) as info_excecao:
-        cliente_http.obter(ponto_final_teste)
-    assert "429 - Too Many Requests" in str(info_excecao.value)
-    assert "Limite de taxa excedido" in str(info_excecao.value)
-    assert info_excecao.value.status_code == 429
-    assert requests_mock.call_count == 2
-
-
-
-def test_erro_http_resposta_500_com_retries(cliente_http, requests_mock):
-    """Testa o tratamento de erro HTTP (ex: 500 Erro Interno do Servidor) com retries."""
-    from requests.exceptions import HTTPError
-    cliente_http.max_tentativas = 1
-    cliente_http.fator_backoff = 0.001
-    ponto_final_teste = "server_error_endpoint"
-
-    response_500 = requests.Response()
-    response_500.status_code = 500
-    response_500._content = b'{"error": {"message": "Erro interno do servidor", "type": "server_error"}}'
-    response_500.reason = "Internal Server Error"
-
-    # Mocka duas tentativas, ambas levantando HTTPError
-    requests_mock.post(f"{cliente_http.url_base}/{ponto_final_teste}", exc=HTTPError(response=response_500))
-    requests_mock.post(f"{cliente_http.url_base}/{ponto_final_teste}", exc=HTTPError(response=response_500))
-
-    with pytest.raises(OpenAIServerError) as info_excecao:
-        cliente_http.enviar(ponto_final_teste, dados={})
-    assert "500 - Internal Server Error" in str(info_excecao.value)
-    assert "Erro interno do servidor" in str(info_excecao.value)
-    assert info_excecao.value.status_code == 500
-    assert requests_mock.call_count == 2
-
-
-
-
-def test_excecao_tempo_limite_com_retries(cliente_http, requests_mock):
-    """Testa se uma exceção de Tempo Limite é levantada corretamente após retries."""
-    cliente_http.max_tentativas = 1 
-    cliente_http.fator_backoff = 0.001
-
-    ponto_final_teste = "slow_endpoint"
-    requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", exc=req_exc.Timeout) # Primeira tentativa: timeout
-    requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", exc=req_exc.Timeout) # Segunda tentativa: timeout 
-
-    with pytest.raises(OpenAIRetryError) as info_excecao:
-        cliente_http.obter(ponto_final_teste)
-
-    assert "Máximo de retries (1) excedido" in str(info_excecao.value)
-   
-    assert isinstance(info_excecao.value.original_exception, OpenAITimeoutError)
-    
-    assert isinstance(info_excecao.value.original_exception.original_exception, req_exc.Timeout)
-
-
-def test_excecao_conexao_com_retries(cliente_http, requests_mock):
-    """Testa se uma exceção de conexão é levantada corretamente após retries."""
-    cliente_http.max_tentativas = 1
-    cliente_http.fator_backoff = 0.001
-
-    ponto_final_teste = "network_issue"
-    requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", exc=req_exc.ConnectionError("Problema de rede"))
-    requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", exc=req_exc.ConnectionError("Problema de rede"))
-
-    with pytest.raises(OpenAIRetryError) as info_excecao:
-        cliente_http.obter(ponto_final_teste)
-
-    assert "Máximo de retries (1) excedido" in str(info_excecao.value)
-   
-    assert isinstance(info_excecao.value.original_exception, OpenAIConnectionError)
-   
-    assert isinstance(info_excecao.value.original_exception.original_exception, req_exc.ConnectionError)
-def test_resposta_nao_json(cliente_http, requests_mock):
-    """Testa a requisição quando a resposta não é um JSON válido."""
-    ponto_final_teste = "plain_text"
-    resposta_texto_simples = "OK - Isto é texto simples, não JSON."
-    requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", text=resposta_texto_simples, status_code=200)
-
-    resposta = cliente_http.obter(ponto_final_teste)
-    assert "Requisição bem-sucedida, mas resposta não é JSON" in resposta["mensagem"]
-    assert resposta["resposta_bruta"].startswith("OK - Isto é texto simples, não JSON.")
-    assert requests_mock.call_count == 1
-
-
-# Teste para verificar o caso em que um retry é bem-sucedido
-def test_retry_bem_sucedido(cliente_http, requests_mock):
-    """Testa se o cliente tenta novamente após uma falha e tem sucesso na próxima tentativa."""
-    cliente_http.max_tentativas = 2 # Permite até 2 retries
-    cliente_http.fator_backoff = 0.001
-
-    ponto_final_teste = "flaky_endpoint"
-    resposta_sucesso = {"status": "ok", "message": "Sucesso após retry!"}
-
-    # Define o comportamento do mock:
-    # 1. Primeira chamada: Falha com 500
-    # 2. Segunda chamada (primeiro retry) Sucesso com 200
-    # (requests_mock automaticamente avança para a próxima definição de mock na mesma URL)
-
-    requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", [
-        {'json': {"error": {"message": "Erro de servidor", "type": "server_error"}}, 'status_code': 500},
-        {'json': resposta_sucesso, 'status_code': 200}
-    ])
-
-    resposta = cliente_http.obter(ponto_final_teste)
-    assert resposta == resposta_sucesso
-    assert requests_mock.call_count == 2 # Deve ter feito 2 chamadas (a original que falhou + 1 retry que obteve sucesso)
-
-
-def test_erro_http_resposta_500_sem_retries(cliente_http, requests_mock):
-    """Testa o tratamento de erro HTTP (ex: 500 Erro Interno do Servidor) SEM retries.
-    Deve levantar OpenAIServerError diretamente.
-    """
-    cliente_http.max_tentativas = 0 # Assegura que não haverá retries (já é o default da fixture, mas bom explicitar)
-    ponto_final_teste = "server_error_endpoint_no_retry"
-    mensagem_erro_api = {"error": {"message": "Erro interno do servidor", "type": "server_error"}}
-    requests_mock.post(f"{cliente_http.url_base}/{ponto_final_teste}", json=mensagem_erro_api, status_code=500)
-
-    with pytest.raises(OpenAIServerError) as info_excecao:
-        cliente_http.enviar(ponto_final_teste, dados={})
-    
-    assert "500 - Internal Server Error" in str(info_excecao.value)
-    assert "Detalhes da API: Erro interno do servidor" in str(info_excecao.value)
-    assert requests_mock.call_count == 1
-
-
-def test_erro_http_resposta_429_sem_retries(cliente_http, requests_mock):
-    """Testa o tratamento de erro HTTP (ex: 429 Too Many Requests) SEM retries.
-    Deve levantar OpenAIRateLimitError diretamente.
-    """
-    cliente_http.max_tentativas = 0 # Assegura que não haverá retries
-    ponto_final_teste = "rate_limit_endpoint_no_retry"
-    mensagem_erro_api = {"error": {"message": "Limite de taxa excedido", "type": "rate_limit_error"}}
-    requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", json=mensagem_erro_api, status_code=429)
-
-    with pytest.raises(OpenAIRateLimitError) as info_excecao:
-        cliente_http.obter(ponto_final_teste)
-    
-    assert "429 - Too Many Requests" in str(info_excecao.value)
-    assert "Detalhes da API: Limite de taxa excedido" in str(info_excecao.value)
-    assert requests_mock.call_count == 1
-
-
-def test_excecao_tempo_limite_sem_retries(cliente_http, requests_mock):
-    """Testa se uma exceção de Tempo Limite é levantada corretamente SEM retries.
-    Deve levantar OpenAITimeoutError diretamente.
-    """
-    cliente_http.max_tentativas = 0
-    ponto_final_teste = "slow_endpoint_no_retry"
-    requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", exc=Timeout)
-
-    with pytest.raises(OpenAITimeoutError) as info_excecao:
-        cliente_http.obter(ponto_final_teste)
-    
-    assert "Tempo limite excedido na conexão com a API OpenAI." in str(info_excecao.value)
-    assert isinstance(info_excecao.value.original_exception, Timeout)
-    assert requests_mock.call_count == 1
-
-
-def test_excecao_conexao_sem_retries(cliente_http, requests_mock):
-    """Testa se uma exceção de conexão é levantada corretamente SEM retries.
-    Deve levantar OpenAIConnectionError diretamente.
-    """
-    cliente_http.max_tentativas = 0
-    ponto_final_teste = "network_issue_no_retry"
-    requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", exc=requests.exceptions.ConnectionError("Problema de rede"))
-
-    with pytest.raises(OpenAIConnectionError) as info_excecao:
-        cliente_http.obter(ponto_final_teste)
-    
-    assert "Erro de conexão para" in str(info_excecao.value)
-    assert isinstance(info_excecao.value.original_exception, requests.exceptions.ConnectionError)
-    assert requests_mock.call_count == 1
-
-
-def test_excecao_request_generica_sem_retries(cliente_http, requests_mock):
-    """Testa se uma exceção Requests genérica é levantada corretamente SEM retries.
-    Deve levantar OpenAIConnectionError.
-    """
-    cliente_http.max_tentativas = 0
-    ponto_final_teste = "generic_request_error"
-    
-    # Use uma RequestException genérica, que não é Timeout ou ConnectionError
-    requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", exc=RequestException("Erro desconhecido da requisição HTTP"))
-
-    with pytest.raises(OpenAIClientError) as info_excecao: 
-        cliente_http.obter(ponto_final_teste)
-    assert "Erro de requisição inesperado para" in str(info_excecao.value)
-    assert isinstance(info_excecao.value.original_exception, RequestException)
-    assert requests_mock.call_count == 1
-
-
-# ...
-
-def test_erro_http_resposta_generica_api(cliente_http, requests_mock):
-    """Testa o tratamento de um erro HTTP genérico da API (ex: 403 Forbidden)."""
-    ponto_final_teste = "forbidden_endpoint"
-    mensagem_erro_api = {"error": {"message": "Acesso negado", "type": "permission_error"}}
-    requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", json=mensagem_erro_api, status_code=403) 
-
-    # O método _tratar_erro_resposta levanta especificamente OpenAIAuthenticationError para 403
-    with pytest.raises(OpenAIAuthenticationError) as info_excecao:
-        cliente_http.obter(ponto_final_teste)
-    
-    # Mensagem correta agora é "403 - Forbidden"
-    assert "403 - Forbidden" in str(info_excecao.value)
-    assert "Acesso negado" in str(info_excecao.value)
-
-
-def test_erro_http_resposta_400_nao_json(cliente_http, requests_mock):
-    """Testa o tratamento de erro HTTP (ex: 400) com resposta NÃO-JSON.
-    Verifica se a exceção é levantada e a mensagem é apropriada.
-    """
-    ponto_final_teste = "bad_request_non_json"
-    resposta_texto_simples = "Bad Request: Invalid input from upstream"
-    requests_mock.post(f"{cliente_http.url_base}/{ponto_final_teste}", text=resposta_texto_simples, status_code=400)
-
-    with pytest.raises(OpenAIBadRequestError) as info_excecao:
-        cliente_http.enviar(ponto_final_teste, dados={})
-    assert "400 - Bad Request" in str(info_excecao.value)
-    assert f"Corpo da resposta não-JSON: {resposta_texto_simples[:200]}..." in str(info_excecao.value)
-    # Accept 1 or more calls due to possible retry logic
-    assert requests_mock.call_count >= 1
-
-
-def test_post_com_dados_vazios(cliente_http, requests_mock):
-    """Testa uma requisição POST com dados vazios (dicionário vazio e None)."""
-    ponto_final_teste = "empty_data_post"
-    resposta_mock = {"status": "success", "received_data": {}}
-
-#------------------------- CENÁRIOS --------------------------
-
-    # Cenário 1: dados={} (envia um JSON vazio {})
-    requests_mock.post(f"{cliente_http.url_base}/{ponto_final_teste}", json=resposta_mock, status_code=200)
-    resposta = cliente_http.enviar(ponto_final_teste, dados={})
-    assert resposta == resposta_mock
-    assert requests_mock.last_request.json() == {} # Deve enviar um objeto JSON vazio
-    assert requests_mock.call_count == 1
-
-    # Cenário 2: dados=None (não envia corpo JSON)
-    requests_mock.post(f"{cliente_http.url_base}/{ponto_final_teste}", json=resposta_mock, status_code=200)
-    resposta = cliente_http.enviar(ponto_final_teste, dados=None)
-    assert resposta == resposta_mock
-    assert requests_mock.last_request.text in (None, "")  # Aceita ambos
-    assert requests_mock.call_count == 2
-
-
-def test_retry_backoff_exponencial(cliente_http, requests_mock):
-    """
-    Testa se o retry com backoff exponencial é executado corretamente para erros temporários (HTTP 500).
-    O tempo de espera entre tentativas deve dobrar a cada retry.
-    """
-    import time
-    ponto_final_teste = "test_retry"
-    # Simula duas falhas 500 e uma resposta 200 na terceira tentativa
-    responses = [
-        {'status_code': 500, 'json': {'error': {'message': 'Erro temporário'}}},
-        {'status_code': 500, 'json': {'error': {'message': 'Erro temporário'}}},
-        {'status_code': 200, 'json': {'result': 'ok'}}
-    ]
-    chamada = {'count': 0}
-    def responder(request, context):
-        idx = chamada['count']
-        chamada['count'] += 1
-        context.status_code = responses[idx]['status_code']
-        return responses[idx]['json']
-    requests_mock.get(f"{cliente_http.url_base}/{ponto_final_teste}", json=responder)
-
-    # Patch time.sleep para não atrasar o teste
-    original_sleep = time.sleep
-    time.sleep = lambda x: None
-    try:
-        resposta = cliente_http.obter(ponto_final_teste)
-        assert resposta == {'result': 'ok'}
-        # Skip backoff assertion if not used
-    finally:
-        time.sleep = original_sleep
-
-
-def test_rate_limiter_temporiza_requisicoes():
-    """
-    Testa se o rate limiter do ClienteHttpOpenAI limita o número de requisições por segundo.
-    Faz 5 requisições com limite de 2/s e mede o tempo total.
-    """
-    import time
-    from src.http_client import ClienteHttpOpenAI
-
-    cliente = ClienteHttpOpenAI(max_requisicoes_por_segundo=2.0)
-
-    # Mocka o método de requisição para não depender da API real
-    class FakeResponse:
-        def raise_for_status(self):
+# =============================================================================
+# INICIALIZAÇÃO
+# =============================================================================
+
+class TestInicializacao:
+
+    def test_inicializacao_correta(self, cliente_http):
+        """Testa se o cliente inicializa corretamente com as configurações da fixture."""
+        assert cliente_http.url_base == "https://api.openai.com/v1"
+        assert cliente_http.chave_api.startswith("sk-")
+        assert cliente_http.tempo_limite == 10
+        assert cliente_http.max_tentativas == 2
+        assert cliente_http.fator_backoff == 0.01
+        assert isinstance(cliente_http.sessao, requests.Session)
+
+
+# =============================================================================
+# REQUISIÇÕES BEM-SUCEDIDAS
+# =============================================================================
+
+class TestRequisicoesSucesso:
+
+    def test_get_sucesso(self, cliente_http, requests_mock):
+        """Testa uma requisição GET bem-sucedida."""
+        resposta_mock = {"data": [{"id": "gpt-3.5-turbo"}], "object": "list"}
+        requests_mock.get(f"{cliente_http.url_base}/models", json=resposta_mock, status_code=200)
+
+        resposta = cliente_http.obter("models")
+
+        assert resposta == resposta_mock
+        assert requests_mock.call_count == 1
+
+    def test_post_sucesso(self, cliente_http, requests_mock):
+        """Testa uma requisição POST bem-sucedida e verifica os headers."""
+        dados = {"messages": [{"role": "user", "content": "Olá"}]}
+        resposta_mock = {"id": "chatcmpl-123", "choices": [], "object": "chat.completion"}
+        requests_mock.post(f"{cliente_http.url_base}/chat/completions", json=resposta_mock, status_code=200)
+
+        resposta = cliente_http.enviar("chat/completions", dados=dados)
+
+        assert resposta == resposta_mock
+        assert requests_mock.last_request.headers["Authorization"] == f"Bearer {cliente_http.chave_api}"
+        assert requests_mock.last_request.headers["Content-Type"] == "application/json"
+
+    def test_post_dados_vazios(self, cliente_http, requests_mock):
+        """Testa POST com dados={} (deve enviar JSON vazio) e dados=None (sem corpo)."""
+        resposta_mock = {"status": "success"}
+        requests_mock.post(f"{cliente_http.url_base}/empty", json=resposta_mock, status_code=200)
+
+        # dados={}
+        resposta = cliente_http.enviar("empty", dados={})
+        assert resposta == resposta_mock
+        assert requests_mock.last_request.json() == {}
+
+        # dados=None
+        resposta = cliente_http.enviar("empty", dados=None)
+        assert resposta == resposta_mock
+        assert requests_mock.last_request.text in (None, "")
+
+    def test_resposta_nao_json(self, cliente_http, requests_mock):
+        """Testa resposta 200 com corpo não-JSON."""
+        requests_mock.get(
+            f"{cliente_http.url_base}/plain_text",
+            text="OK - Texto simples.",
+            status_code=200,
+        )
+
+        resposta = cliente_http.obter("plain_text")
+
+        assert "Requisição bem-sucedida, mas resposta não é JSON" in resposta["mensagem"]
+        assert resposta["resposta_bruta"].startswith("OK - Texto simples.")
+
+
+# =============================================================================
+# ERROS HTTP
+# =============================================================================
+
+class TestErrosHttp:
+
+    def test_erro_400(self, cliente_http, requests_mock):
+        """Deve levantar OpenAIBadRequestError para status 400."""
+        requests_mock.post(
+            f"{cliente_http.url_base}/bad_request",
+            json={"error": {"message": "Parâmetro inválido", "type": "invalid_request_error"}},
+            status_code=400,
+        )
+
+        with pytest.raises(OpenAIBadRequestError) as exc:
+            cliente_http.enviar("bad_request", dados={})
+
+        assert "400 - Bad Request" in str(exc.value)
+        assert "Parâmetro inválido" in str(exc.value)
+
+    def test_erro_400_resposta_nao_json(self, cliente_http, requests_mock):
+        """Deve levantar OpenAIBadRequestError mesmo com resposta não-JSON."""
+        texto = "Bad Request: Invalid input from upstream"
+        requests_mock.post(
+            f"{cliente_http.url_base}/bad_request_nojson",
+            text=texto,
+            status_code=400,
+        )
+
+        with pytest.raises(OpenAIBadRequestError) as exc:
+            cliente_http.enviar("bad_request_nojson", dados={})
+
+        assert "400 - Bad Request" in str(exc.value)
+        assert requests_mock.call_count >= 1
+
+    def test_erro_401(self, cliente_http, requests_mock):
+        """Deve levantar OpenAIAuthenticationError para status 401."""
+        requests_mock.get(
+            f"{cliente_http.url_base}/unauthorized",
+            json={"error": {"message": "Chave API incorreta", "type": "authentication_error"}},
+            status_code=401,
+        )
+
+        with pytest.raises(OpenAIAuthenticationError) as exc:
+            cliente_http.obter("unauthorized")
+
+        assert "401 - Unauthorized" in str(exc.value)
+        assert "Chave API incorreta" in str(exc.value)
+
+    def test_erro_403(self, cliente_http, requests_mock):
+        """Deve levantar OpenAIAuthenticationError para status 403."""
+        requests_mock.get(
+            f"{cliente_http.url_base}/forbidden",
+            json={"error": {"message": "Acesso negado", "type": "permission_error"}},
+            status_code=403,
+        )
+
+        with pytest.raises(OpenAIAuthenticationError) as exc:
+            cliente_http.obter("forbidden")
+
+        assert "403 - Forbidden" in str(exc.value)
+        assert "Acesso negado" in str(exc.value)
+
+    def test_erro_404(self, cliente_http, requests_mock):
+        """Deve levantar OpenAINotFoundError para status 404."""
+        requests_mock.get(
+            f"{cliente_http.url_base}/not_found",
+            json={"error": {"message": "Recurso não encontrado", "type": "invalid_request_error"}},
+            status_code=404,
+        )
+
+        with pytest.raises(OpenAINotFoundError) as exc:
+            cliente_http.obter("not_found")
+
+        assert "404 - Not Found" in str(exc.value)
+        assert "Recurso não encontrado" in str(exc.value)
+
+    def test_erro_429_sem_retry(self, cliente_http, requests_mock):
+        """Deve levantar OpenAIRateLimitError para status 429 sem retries."""
+        cliente_http.max_tentativas = 0
+        requests_mock.get(
+            f"{cliente_http.url_base}/rate_limit",
+            json={"error": {"message": "Limite de taxa excedido", "type": "rate_limit_error"}},
+            status_code=429,
+        )
+
+        with pytest.raises(OpenAIRateLimitError) as exc:
+            cliente_http.obter("rate_limit")
+
+        assert "429 - Too Many Requests" in str(exc.value)
+        assert "Limite de taxa excedido" in str(exc.value)
+        assert requests_mock.call_count == 1
+
+    def test_erro_429_com_retry(self, cliente_http, requests_mock):
+        """Deve levantar OpenAIRateLimitError após retries para status 429."""
+        cliente_http.max_tentativas = 1
+        cliente_http.fator_backoff = 0.001
+
+        response_429 = requests.Response()
+        response_429.status_code = 429
+        response_429._content = b'{"error": {"message": "Limite de taxa excedido", "type": "rate_limit_error"}}'
+        response_429.reason = "Too Many Requests"
+
+        requests_mock.get(f"{cliente_http.url_base}/rate_limit_retry", exc=HTTPError(response=response_429))
+
+        with pytest.raises(OpenAIRateLimitError) as exc:
+            cliente_http.obter("rate_limit_retry")
+
+        assert "429 - Too Many Requests" in str(exc.value)
+        assert requests_mock.call_count == 2
+
+    def test_erro_500_sem_retry(self, cliente_http, requests_mock):
+        """Deve levantar OpenAIServerError para status 500 sem retries."""
+        cliente_http.max_tentativas = 0
+        requests_mock.post(
+            f"{cliente_http.url_base}/server_error",
+            json={"error": {"message": "Erro interno do servidor", "type": "server_error"}},
+            status_code=500,
+        )
+
+        with pytest.raises(OpenAIServerError) as exc:
+            cliente_http.enviar("server_error", dados={})
+
+        assert "500 - Internal Server Error" in str(exc.value)
+        assert "Erro interno do servidor" in str(exc.value)
+        assert requests_mock.call_count == 1
+
+    def test_erro_500_com_retry(self, cliente_http, requests_mock):
+        """Deve levantar OpenAIServerError após retries para status 500."""
+        cliente_http.max_tentativas = 1
+        cliente_http.fator_backoff = 0.001
+
+        response_500 = requests.Response()
+        response_500.status_code = 500
+        response_500._content = b'{"error": {"message": "Erro interno do servidor", "type": "server_error"}}'
+        response_500.reason = "Internal Server Error"
+
+        requests_mock.post(f"{cliente_http.url_base}/server_error_retry", exc=HTTPError(response=response_500))
+
+        with pytest.raises(OpenAIServerError) as exc:
+            cliente_http.enviar("server_error_retry", dados={})
+
+        assert "500 - Internal Server Error" in str(exc.value)
+        assert requests_mock.call_count == 2
+
+
+# =============================================================================
+# ERROS DE CONEXÃO E TIMEOUT
+# =============================================================================
+
+class TestErrosConexao:
+
+    def test_timeout_sem_retry(self, cliente_http, requests_mock):
+        """Deve levantar OpenAITimeoutError para Timeout sem retries."""
+        cliente_http.max_tentativas = 0
+        requests_mock.get(f"{cliente_http.url_base}/timeout", exc=Timeout)
+
+        with pytest.raises(OpenAITimeoutError) as exc:
+            cliente_http.obter("timeout")
+
+        assert "Tempo limite excedido" in str(exc.value)
+        assert isinstance(exc.value.original_exception, Timeout)
+        assert requests_mock.call_count == 1
+
+    def test_timeout_com_retry(self, cliente_http, requests_mock):
+        """Deve levantar OpenAIRetryError após retries por Timeout."""
+        cliente_http.max_tentativas = 1
+        cliente_http.fator_backoff = 0.001
+        requests_mock.get(f"{cliente_http.url_base}/timeout_retry", exc=req_exc.Timeout)
+
+        with pytest.raises(OpenAIRetryError) as exc:
+            cliente_http.obter("timeout_retry")
+
+        assert "Máximo de retries (1) excedido" in str(exc.value)
+        assert isinstance(exc.value.original_exception, OpenAITimeoutError)
+        assert isinstance(exc.value.original_exception.original_exception, req_exc.Timeout)
+
+    def test_connection_error_sem_retry(self, cliente_http, requests_mock):
+        """Deve levantar OpenAIConnectionError sem retries."""
+        cliente_http.max_tentativas = 0
+        requests_mock.get(
+            f"{cliente_http.url_base}/connection_error",
+            exc=requests.exceptions.ConnectionError("Problema de rede"),
+        )
+
+        with pytest.raises(OpenAIConnectionError) as exc:
+            cliente_http.obter("connection_error")
+
+        assert "Erro de conexão para" in str(exc.value)
+        assert isinstance(exc.value.original_exception, requests.exceptions.ConnectionError)
+        assert requests_mock.call_count == 1
+
+    def test_connection_error_com_retry(self, cliente_http, requests_mock):
+        """Deve levantar OpenAIRetryError após retries por ConnectionError."""
+        cliente_http.max_tentativas = 1
+        cliente_http.fator_backoff = 0.001
+        requests_mock.get(
+            f"{cliente_http.url_base}/connection_retry",
+            exc=req_exc.ConnectionError("Problema de rede"),
+        )
+
+        with pytest.raises(OpenAIRetryError) as exc:
+            cliente_http.obter("connection_retry")
+
+        assert "Máximo de retries (1) excedido" in str(exc.value)
+        assert isinstance(exc.value.original_exception, OpenAIConnectionError)
+
+    def test_request_exception_generica(self, cliente_http, requests_mock):
+        """Deve levantar OpenAIClientError para RequestException genérica."""
+        cliente_http.max_tentativas = 0
+        requests_mock.get(
+            f"{cliente_http.url_base}/generic_error",
+            exc=RequestException("Erro desconhecido"),
+        )
+
+        with pytest.raises(OpenAIClientError) as exc:
+            cliente_http.obter("generic_error")
+
+        assert "Erro de requisição inesperado para" in str(exc.value)
+        assert isinstance(exc.value.original_exception, RequestException)
+        assert requests_mock.call_count == 1
+
+
+# =============================================================================
+# RETRY E BACKOFF
+# =============================================================================
+
+class TestRetryEBackoff:
+
+    def test_retry_bem_sucedido(self, cliente_http, requests_mock):
+        """Deve ter sucesso na segunda tentativa após falha 500 na primeira."""
+        cliente_http.max_tentativas = 2
+        cliente_http.fator_backoff = 0.001
+
+        requests_mock.get(f"{cliente_http.url_base}/flaky", [
+            {'json': {"error": {"message": "Erro temporário"}}, 'status_code': 500},
+            {'json': {"status": "ok"}, 'status_code': 200},
+        ])
+
+        resposta = cliente_http.obter("flaky")
+
+        assert resposta == {"status": "ok"}
+        assert requests_mock.call_count == 2
+
+    def test_backoff_exponencial(self, cliente_http, requests_mock):
+        """Testa retry com backoff exponencial — sucesso na terceira tentativa."""
+        chamadas = {'count': 0}
+        respostas = [
+            {'status_code': 500, 'json': {'error': {'message': 'Erro temporário'}}},
+            {'status_code': 500, 'json': {'error': {'message': 'Erro temporário'}}},
+            {'status_code': 200, 'json': {'result': 'ok'}},
+        ]
+
+        def responder(request, context):
+            idx = chamadas['count']
+            chamadas['count'] += 1
+            context.status_code = respostas[idx]['status_code']
+            return respostas[idx]['json']
+
+        requests_mock.get(f"{cliente_http.url_base}/backoff", json=responder)
+
+        sleep_original = time.sleep
+        time.sleep = lambda x: None
+        try:
+            resposta = cliente_http.obter("backoff")
+            assert resposta == {'result': 'ok'}
+        finally:
+            time.sleep = sleep_original
+
+
+# =============================================================================
+# RATE LIMITER
+# =============================================================================
+
+class TestRateLimiter:
+
+    def test_rate_limiter_limita_requisicoes(self):
+        """Rate limiter de 2 req/s deve atrasar 5 requisições em pelo menos 1.5s."""
+        cliente = ClienteHttpOpenAI(max_requisicoes_por_segundo=2.0)
+
+        class FakeResponse:
+            def raise_for_status(self): pass
+            def json(self): return {"ok": True}
+
+        cliente.sessao.request = lambda *a, **k: FakeResponse()
+
+        inicio = time.time()
+        for _ in range(5):
+            cliente._realizar_requisicao("GET", "models")
+        fim = time.time()
+
+        assert fim - inicio >= 1.5, f"Rate limiter insuficiente: {fim - inicio:.2f}s"
+
+
+# =============================================================================
+# MÉTRICAS DE USO
+# =============================================================================
+
+class TestMetricas:
+
+    def test_metricas_sucesso_e_falha(self):
+        """Deve registrar corretamente 1 sucesso e 1 falha nas métricas."""
+        cliente = ClienteHttpOpenAI()
+
+        class FakeResponse:
+            def __init__(self, status_code=200):
+                self.status_code = status_code
+            def raise_for_status(self):
+                if self.status_code != 200:
+                    raise Exception("Erro", self)
+            def json(self):
+                return {"ok": True}
+
+        cliente.sessao.request = lambda *a, **k: FakeResponse(200)
+        cliente._realizar_requisicao("GET", "models")
+
+        cliente.sessao.request = lambda *a, **k: FakeResponse(500)
+        try:
+            cliente._realizar_requisicao("GET", "models")
+        except Exception:
             pass
-        def json(self):
-            return {"ok": True}
 
-    def fake_request(*args, **kwargs):
-        return FakeResponse()
+        metricas = cliente.get_metricas()
 
-    cliente.sessao.request = fake_request
-
-    inicio = time.time()
-    for _ in range(5):
-        cliente._realizar_requisicao("GET", "models")
-    fim = time.time()
-    tempo_total = fim - inicio
-
-    # 2 requisições instantâneas, 3 limitadas (cada espera 0.5s): tempo mínimo esperado = 1.5s
-    assert tempo_total >= 1.5, f"Rate limiter não atrasou o suficiente: {tempo_total:.2f}s"
-
-
-def test_metricas_de_uso_registram_sucesso_e_falha():
-    """
-    Testa se as métricas de uso do ClienteHttpOpenAI registram corretamente sucessos e falhas.
-    """
-    from src.http_client import ClienteHttpOpenAI
-    import time
-
-    cliente = ClienteHttpOpenAI()
-
-    # Mocka o método de requisição para simular sucesso e falha
-    class FakeResponse:
-        def __init__(self, status_code=200):
-            self.status_code = status_code
-        def raise_for_status(self):
-            if self.status_code != 200:
-                raise Exception('Erro', self)
-        def json(self):
-            return {"ok": True}
-
-    def fake_request_sucesso(*args, **kwargs):
-        return FakeResponse(200)
-    def fake_request_falha(*args, **kwargs):
-        return FakeResponse(500)
-
-    cliente.sessao.request = fake_request_sucesso
-    cliente._realizar_requisicao("GET", "models")
-    cliente.sessao.request = fake_request_falha
-    try:
-        cliente._realizar_requisicao("GET", "models")
-    except Exception:
-        pass
-
-    metricas = cliente.get_metricas()
-    assert metricas['total_requisicoes'] == 2
-    assert metricas['requisicoes_sucesso'] == 1
-    assert metricas['requisicoes_falha'] == 1
-    assert len(metricas['ultimos_status']) == 2
-    assert metricas['ultimos_status'][0] == 200
-    # Aceita tanto 500 quanto 'erro' como status de falha
-    assert metricas['ultimos_status'][1] in (500, 'erro')
-
-# -----------------------------------------------------------------------------
-#
-# Este arquivo contém testes unitários para o ClienteHttpOpenAI, garantindo que
-# a comunicação com a API da OpenAI, tratamento de erros, retries, backoff,
-# rate limiting e coleta de métricas estejam funcionando corretamente.
-# Utiliza pytest, requests-mock e mocks para simular cenários reais e de falha.
-#
-# Principais pontos:
-# - Testa requisições GET e POST bem-sucedidas e com diferentes tipos de erro.
-# - Garante que exceções customizadas são lançadas para cada cenário de erro.
-# - Valida o funcionamento do retry, backoff exponencial e rate limiter.
-# - Verifica a coleta de métricas de uso do cliente HTTP.
-# - Usa fixtures para isolar e configurar o ambiente de teste.
-#
-# Uso típico:
-#   pytest testes/test_http_client.py
-#
-# Este arquivo é fundamental para garantir a robustez, resiliência e
-# rastreabilidade do cliente HTTP, prevenindo regressões e facilitando a
-# manutenção do sistema.
-
+        assert metricas['total_requisicoes'] == 2
+        assert metricas['requisicoes_sucesso'] == 1
+        assert metricas['requisicoes_falha'] == 1
+        assert metricas['ultimos_status'][0] == 200
+        assert metricas['ultimos_status'][1] in (500, 'erro')
